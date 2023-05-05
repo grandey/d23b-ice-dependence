@@ -219,7 +219,7 @@ def fig_ice_sheet_marginals(projection_source='fusion', scenario='SSP5-8.5', yea
     """
     # Create Figure and Axes
     n_axs = len(components)  # number of subplots = number of components
-    fig, axs = plt.subplots(n_axs, 1, figsize=(7, 3*n_axs), sharex=True, sharey=True, tight_layout=True)
+    fig, axs = plt.subplots(n_axs, 1, figsize=(5, 2.1*n_axs), sharex=True, sharey=True, tight_layout=True)
     # Loop over components and Axes
     for i, (component, ax) in enumerate(zip(components, axs)):
         # Get marginal samples
@@ -231,7 +231,7 @@ def fig_ice_sheet_marginals(projection_source='fusion', scenario='SSP5-8.5', yea
         # Plot 5th, 50th, and 95th percentiles, using original quantile function (not samples)
         qf_da = read_sea_level_qf(projection_source=projection_source, component=component,
                                   scenario=scenario, year=year)
-        y_pos = 12.2  # position of percentile whiskers is tuned for the default parameters
+        y_pos = 12.3  # position of percentile whiskers is tuned for the default parameters
         ax.plot([qf_da.sel(quantiles=p) for p in (0.05, 0.95)], [y_pos, y_pos], color='g', marker='|')
         ax.plot([qf_da.sel(quantiles=0.5),], [y_pos,], color='g', marker='x')
         if i == (n_axs-1):  # label percentiles in final subplot
@@ -239,7 +239,7 @@ def fig_ice_sheet_marginals(projection_source='fusion', scenario='SSP5-8.5', yea
                 ax.text(qf_da.sel(quantiles=p), y_pos-0.4, f'{int(p*100)}th',
                         ha='center', va='top', color='g', rotation=90)
         # Skewness and kurtosis
-        ax.text(1.9, 8,  # position tuned for the default parameters
+        ax.text(1.9, 6.5,  # position tuned for the default parameters
                 f"Skewness = {stats.skew(marginal_n):.2f}\n"
                 f"Fisher's kurtosis = {stats.kurtosis(marginal_n, fisher=True):0.2f}",
                 ha='right', va='center', fontsize='medium', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
