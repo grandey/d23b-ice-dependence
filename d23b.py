@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import pyvinecopulib as pv
 from scipy import stats
 import seaborn as sns
 import warnings
@@ -248,6 +249,7 @@ def fig_ice_sheet_marginals(projection_source='fusion', scenario='SSP5-8.5', yea
     # x-axis label and limits
     axs[-1].set_xlabel(f'Contribution to GMSLR (2005–{year}), m')
     axs[-1].set_xlim([-0.5, 2.0])
+    return fig, axs
 
 
 # Combined Antarctic ISM ensemble
@@ -339,3 +341,49 @@ def read_p21_l23_ism_data(ref_year=2015, target_year=2100):
 
     # Return result
     return p21_l23_df
+
+def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
+    """
+    Plot figure showing combined ISM ensemble WAIS vs EAIS on (a) GMSLR scale and (b) copula scale.
+
+    Parameters
+    ----------
+    ref_year : int
+        Reference year. Default is 2015 (which is the start year for Payne et al. data).
+    target_year : int
+        Target year for difference. Default is 2100.
+
+    Returns
+    -------
+    fig : Figure
+    axs : array of Axes
+    """
+    # Read combined Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023)
+    p21_l23_df = read_p21_l23_ism_data(ref_year=ref_year, target_year=target_year)
+    # Create Figure and Axes
+    fig, axs = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
+    # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
+    ax = axs[0]
+    sns.scatterplot(p21_l23_df, x='EAIS', y='WAIS', hue='Group', style='Group', ax=ax)
+    ax.legend(loc='lower right', framealpha=1, edgecolor='0.85')  # specify edgecolor consistent with box in (b)
+    ax.set_title(f'(a) Contribution to GMSLR')
+    ax.set_xlabel('EAIS, m')
+    ax.set_ylabel('WAIS, m')
+    # (b) Pseudo-copula data on copula scale
+    ax = axs[1]
+    x_n2 = np.stack([p21_l23_df['EAIS'], p21_l23_df['WAIS']], axis=1)
+    u_n2 = pv.to_pseudo_obs(x_n2)
+    u_df = pd.DataFrame({'EAIS': u_n2[:,0], 'WAIS': u_n2[:,1], 'Group': p21_l23_df['Group']})
+    sns.scatterplot(u_df, x='EAIS', y='WAIS', hue='Group', style='Group', legend=False, ax=ax)
+    ax.set_title(f'(b) Pseudo-copula data')
+    ax.set_xlabel('EAIS')
+    ax.set_ylabel('WAIS')
+    ax.set_xlim([0,1])
+    ax.set_ylim([0,1])
+    # Fit copula (limited to single-parameter families)
+    controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
+                                               pv.BicopFamily.gaussian, pv.BicopFamily.frank, pv.BicopFamily.clayton])
+    bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
+    ax.text(0.8, 0.04, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.3f}',
+            ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
+    return fig, axs
