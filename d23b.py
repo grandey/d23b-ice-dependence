@@ -234,7 +234,7 @@ def fig_ice_sheet_marginals(projection_source='fusion', scenario='SSP5-8.5', yea
                                   scenario=scenario, year=year)
         y_pos = 12.3  # position of percentile whiskers is tuned for the default parameters
         ax.plot([qf_da.sel(quantiles=p) for p in (0.05, 0.95)], [y_pos, y_pos], color='g', marker='|')
-        ax.plot([qf_da.sel(quantiles=0.5),], [y_pos,], color='g', marker='x')
+        ax.plot([qf_da.sel(quantiles=0.5), ], [y_pos, ], color='g', marker='x')
         if i == (n_axs-1):  # label percentiles in final subplot
             for p in [0.05, 0.5, 0.95]:
                 ax.text(qf_da.sel(quantiles=p), y_pos-0.4, f'{int(p*100)}th',
@@ -290,7 +290,7 @@ def read_p21_l23_ism_data(ref_year=2015, target_year=2100):
                 'B6',  # CNRM-CM6-1 SSP5-8.5, standard protocol
                 'B8',  # UKESM1-0-LL SSP5-8.5, standard protocol
                 'B9',  # CESM2 SSP5-8.5, standard protocol
-                'B10']  #CNRM-ESM2-1 SSP5-8.5, standard protocol
+                'B10']  # CNRM-ESM2-1 SSP5-8.5, standard protocol
     # Loop over experiments
     for exp in exp_list:
         # Loop over available input files
@@ -299,7 +299,7 @@ def read_p21_l23_ism_data(ref_year=2015, target_year=2100):
             # Create dictionary to hold data for this input file
             ais_dict = {'Group': f'P21_ISMIP6'}
             # Get ice-sheet model institute and name
-            ais_dict['Notes'] = ('_').join(in_fn.name.split('_')[-3:-1])
+            ais_dict['Notes'] = '_'.join(in_fn.name.split('_')[-3:-1])
             # Read DataSet
             in_ds = xr.load_dataset(in_fn)
             # Calculate SLE for target year relative to reference year for WAIS and EAIS
@@ -342,6 +342,7 @@ def read_p21_l23_ism_data(ref_year=2015, target_year=2100):
     # Return result
     return p21_l23_df
 
+
 def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     """
     Plot figure showing combined ISM ensemble WAIS vs EAIS on (a) GMSLR scale and (b) copula scale.
@@ -373,13 +374,13 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     ax = axs[1]
     x_n2 = np.stack([p21_l23_df['EAIS'], p21_l23_df['WAIS']], axis=1)
     u_n2 = pv.to_pseudo_obs(x_n2)
-    u_df = pd.DataFrame({'EAIS': u_n2[:,0], 'WAIS': u_n2[:,1], 'Group': p21_l23_df['Group']})
+    u_df = pd.DataFrame({'EAIS': u_n2[:, 0], 'WAIS': u_n2[:, 1], 'Group': p21_l23_df['Group']})
     sns.scatterplot(u_df, x='EAIS', y='WAIS', hue='Group', style='Group', legend=False, ax=ax)
     ax.set_title(f'(b) Pseudo-copula data')
     ax.set_xlabel('EAIS')
     ax.set_ylabel('WAIS')
-    ax.set_xlim([0,1])
-    ax.set_ylim([0,1])
+    ax.set_xlim([0, 1])
+    ax.set_ylim([0, 1])
     # Fit copula (limited to single-parameter families)
     controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
                                                pv.BicopFamily.gaussian, pv.BicopFamily.frank, pv.BicopFamily.clayton])
@@ -387,3 +388,47 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     ax.text(0.8, 0.04, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.3f}',
             ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
     return fig, axs
+
+
+# Sample copulas and joint distributions
+
+@cache
+def sample_bivariate_copula(family=pv.BicopFamily.gaussian, rotation=0, tau=0.5, n_samples=int(1e5), plot=False):
+    """
+    Sample bivariate copula with a given family, rotation, Kendall's tau, and number of samples.
+
+    Parameters
+    ----------
+    family : pv.BicopFamily or str
+        Bivariate copula family. Default is pv.BicopFamily.gaussian.
+    rotation : int
+        Bivariate copula rotation. Ignored for Independence, Gaussian, and Frank copulas. Default is 0.
+    tau : float
+        Kendall's tau for the Copula. Default is 0.5.
+    n_samples : int
+        Number of samples to generate. Default is int(1e5).
+    plot : bool
+        Plot the simulated data? Default is False.
+
+    Returns
+    -------
+    u_n2 : np.array
+        An array of the simulated data, with shape (n_samples, 2).
+    """
+    # Check that tau is a float
+    if type(tau) not in [float, np.float64, int]:
+        raise ValueError(f'tau={tau} is not a float.')
+    # Derive parameters and create bivariate copula
+    parameters = pv.Bicop(family=family).tau_to_parameters(tau)
+    if family in (pv.BicopFamily.indep, pv.BicopFamily.gaussian, pv.BicopFamily.frank):  # ignore rotation
+        cop = pv.Bicop(family=family, parameters=parameters)
+    else:
+        cop = pv.Bicop(family=family, rotation=rotation, parameters=parameters)
+    # Simulate data
+    u_n2 = cop.simulate(n=n_samples, seeds=[1, 2, 3, 4, 5])
+    # Plot?
+    if plot:
+        sns.jointplot(pd.DataFrame(u_n2, columns=['u1', 'u2']), x='u1', y='u2', kind='hex')
+        plt.suptitle(f'{cop.str()}', y=1.01)
+        plt.show()
+    return u_n2
