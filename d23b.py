@@ -356,6 +356,8 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
 
     Returns
     -------
+    bicop : pv.Bicop
+        Fitted copula.
     fig : Figure
     axs : array of Axes
     """
@@ -387,7 +389,7 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
     ax.text(0.8, 0.04, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.3f}',
             ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
-    return fig, axs
+    return bicop, fig, axs
 
 
 # Sample copulas and joint distributions
