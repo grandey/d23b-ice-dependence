@@ -558,3 +558,60 @@ def sample_mixture_dvine_copula(taus=((0, 1), (0, 1)), n_copulas=1000, n_samples
         plt.suptitle('Mixture', y=1.01)
         plt.show()
     return u_nm
+
+
+@cache
+def sample_trivariate_distribution(projection_source='fusion', scenario='SSP5-8.5', year=2100,
+                                   families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussian),
+                                   rotations=(0, 0), taus=(0.5, 0.5),
+                                   n_samples=int(1e5), plot=False):
+    """
+    Sample EAIS-WAIS-GrIS joint distribution.
+
+    Parameters
+    ----------
+    projection_source : str
+        Projection source. Options are 'ISMIP6'/'model-based',  'SEJ'/'expert-based',
+        'p-box'/'bounding quantile function', and 'fusion' (default).
+    scenario : str
+        Scenario. Options are 'SSP1-2.6' and 'SSP5-8.5' (default).
+    year : int
+        Year. Default is 2100.
+    families : 'Mixture' or tuple of pv.BicopFamily
+        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.gaussian).
+    rotations : tuple of int
+        Pair copula rotations. Ignored if family is 'Mixture'. Default is (0, 0).
+    taus : tuple of float or tuple
+        Pair copula Kendall's tau values. If float, tau is deterministic. If tuple of length 2, tau ~ U(a, b).
+        If of length 4, tau ~ TN(μ, σ, clip_a, clip_b). Tuple only valid if families is 'Mixture'.
+        Default is (0.5, 0.5).
+    n_samples : int
+        Number of samples. Default is int(1e5).
+    plot : bool
+        Plot the joint distribution? Default is False.
+
+    Returns
+    -------
+    x_n3 : np.array
+        An array of shape (n_samples, 3), containing the samples from the joint distribution.
+    """
+    # Sample marginals of EAIS, WAIS, GrIS components
+    components = ['EAIS', 'WAIS', 'GrIS']
+    marginals = []  # empty list to hold samples for the marginals
+    for component in components:
+        marginal_n = sample_sea_level_marginal(projection_source=projection_source, component=component,
+                                               scenario=scenario, year=year, n_samples=n_samples, plot=False)
+        marginals.append(marginal_n)
+    marg_n3 = np.stack(marginals, axis=1)  # marginal array with shape (n_samples, 3)
+    # Sample copula
+    if families == 'Mixture':
+        u_n3 = sample_mixture_dvine_copula(taus=taus, n_copulas=1000, n_samples=n_samples, plot=False)
+    else:
+        u_n3 = sample_dvine_copula(families=families, rotations=rotations, taus=taus, n_samples=n_samples, plot=False)
+    # Transform marginals of copula
+    x_n3 = np.transpose(np.asarray([np.quantile(marg_n3[:, i], u_n3[:, i]) for i in range(3)]))
+    # Plot?
+    if plot:
+        sns.pairplot(pd.DataFrame(x_n3, columns=components), kind='hist')
+        plt.show()
+    return x_n3
