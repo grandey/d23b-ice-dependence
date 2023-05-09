@@ -8,6 +8,7 @@ Author:
 
 
 from functools import cache
+import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -615,3 +616,128 @@ def sample_trivariate_distribution(projection_source='fusion', scenario='SSP5-8.
         sns.pairplot(pd.DataFrame(x_n3, columns=components), kind='hist')
         plt.show()
     return x_n3
+
+
+# Figure illustrating bivariate distribution, bivariate copula, and truncated vine copula
+
+@cache
+def fig_illustrate_bivariate_copula_vine(projection_source='fusion', scenario='SSP5-8.5', year=2100,
+                                         family=pv.BicopFamily.gaussian, rotation=0, tau=0.5, n_samples=int(1e5)):
+    """
+    Plot figure illustrating (a) bivariate distribution, (b) bivariate copula, and (c) truncated D-vine copula.
+
+    Parameters
+    ----------
+    projection_source : str
+        Projection source. Options are 'ISMIP6'/'model-based',  'SEJ'/'expert-based',
+        'p-box'/'bounding quantile function', and 'fusion' (default).
+    scenario : str
+        Scenario. Options are 'SSP1-2.6' and 'SSP5-8.5' (default).
+    year : int
+        Year. Default is 2100.
+    family : pv.BicopFamily
+        Pair copula family. (We assume that the two pair copulas are identical.) Default is pv.BicopFamily.gaussian.
+    rotation : int
+        Pair copula rotation. Default is 0.
+    tau : float
+        Pair copula Kendall's tau. Default is 0.5.
+    n_samples : int
+        Number of samples. Default is int(1e5).
+
+    Returns
+    -------
+    fig : Figure
+    axs : array of Axes
+    """
+    # Create folder to hold temporary component plots
+    temp_dir = Path('temp')
+    temp_dir.mkdir(exist_ok=True)
+    # 1st component plot: bivariate joint distribution (with marginals)
+    x_n3 = sample_trivariate_distribution(projection_source=projection_source, scenario=scenario, year=year,
+                                          families=(family, )*2, rotations=(rotation, )*2, taus=(tau, )*2,
+                                          n_samples=n_samples, plot=False)
+    x_df = pd.DataFrame(x_n3, columns=['EAIS, m', 'WAIS, m', 'GrIS, m'])
+    g = sns.jointplot(x_df, x='EAIS, m', y='WAIS, m', kind='kde', cmap='Greens', fill=True, levels=7, cut=0,
+                      marginal_ticks=False, marginal_kws={'bw_adjust': 0.2, 'color': 'b'},
+                      xlim=[-0.2, 0.2], ylim=[-0.2, 0.5], height=3)
+    g.savefig(temp_dir / 'temp_joint.png')
+    plt.close(g.fig)
+    # 2nd component: bivariate copula (with uniform marginals)
+    u_n2 = sample_bivariate_copula(family=family, rotation=rotation, tau=tau, n_samples=n_samples, plot=False)
+    u_df = pd.DataFrame(u_n2, columns=['EAIS', 'WAIS'])
+    g = sns.jointplot(u_df, x='EAIS', y='WAIS', kind='kde', cmap='Greens', fill=True, levels=7, cut=0, clip=[0, 1],
+                      marginal_ticks=False, marginal_kws={'bw_adjust': 0.2, 'color': 'b'},
+                      xlim=[0, 1], ylim=[0, 1], height=3)
+    g.savefig(temp_dir / 'temp_copula1.png')
+    plt.close(g.fig)
+    # 3rd component: copula without marginals
+    fig, ax = plt.subplots(1, 1, figsize=(3, 3), tight_layout=True)
+    sns.kdeplot(u_df, x='EAIS', y='WAIS', cmap='Greens', fill=True, levels=7, cut=0, clip=[0, 1], ax=ax)
+    ax.grid(False)
+    ax.set_xlabel(None)
+    ax.set_ylabel(None)
+    ax.set_xlim([0, 1])
+    ax.set_ylim([0, 1])
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    fig.savefig(temp_dir / 'temp_copula2.png')
+    plt.close(fig)
+    # 4th-6th components: marginals
+    for s in ['EAIS', 'WAIS', 'GrIS']:
+        fig, ax = plt.subplots(1, 1, figsize=(2, 1), tight_layout=True)
+        sns.kdeplot(x_df, x=f'{s}, m', bw_adjust=0.2, color='b', fill=True, cut=0, ax=ax)
+        ax.grid(False)
+        ax.set_xlabel(None)
+        ax.set_ylabel(None)
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        fig.savefig(temp_dir / f'temp_{s}.png')
+        plt.close(fig)
+    # Combine component images into composite figure
+    fig = plt.figure(figsize=(10, 7), tight_layout=True)
+    gs = gridspec.GridSpec(2, 3, width_ratios=[4, 2, 4], height_ratios=[4, 3])
+    # (a) Bivariate joint distribution
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.set_axis_off()
+    ax1.imshow(plt.imread(temp_dir / 'temp_joint.png'))
+    ax1.annotate('Marginal\ndensity', xy=(0.6, 0.92), xytext=(0.95, 0.92),
+                 va='center', ha='center', xycoords='axes fraction', fontsize='large', color='b',
+                 arrowprops=dict(arrowstyle='->', ec='b'))
+    ax1.annotate('Joint\ndensity', xy=(0.5, 0.6), xytext=(0.33, 0.79),
+                 va='center', ha='center', xycoords='axes fraction', fontsize='large', color='g',
+                 arrowprops=dict(arrowstyle='->', ec='g'))
+    ax1.set_title('(a) Bivariate distribution', fontsize='x-large')
+    # Probability integral transform arrow
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax2.set_axis_off()
+    ax2.text(0.5, 0.65, 'Transform to the copula scale\n(via probability integral transform)',
+             ha='center', va='center',
+             bbox=dict(boxstyle='rarrow,pad=0.5', fc='lavender', ec='purple'))
+    ax2.text(0.5, 0.35, 'Transform to the sea-level scale\n(with desired marginal distributions)',
+             ha='center', va='center',
+             bbox=dict(boxstyle='larrow,pad=0.5', fc='lavender', ec='purple'))
+    # (b) Bivariate copula
+    ax3 = fig.add_subplot(gs[0, 2])
+    ax3.set_axis_off()
+    ax3.imshow(plt.imread(temp_dir / 'temp_copula1.png'))
+    ax3.annotate('Uniform\nmarginal\ndensity', xy=(0.2, 0.92), xytext=(0, 0.92),
+                 va='center', ha='center', xycoords='axes fraction', fontsize='large', color='b',
+                 arrowprops=dict(arrowstyle='->', ec='b'))
+    ax3.annotate('Copula\ndensity', xy=(0.45, 0.65), xytext=(0.3, 0.77),
+                 va='center', ha='center', xycoords='axes fraction', fontsize='large', color='g',
+                 arrowprops=dict(arrowstyle='->', ec='g'))
+    ax3.set_title('(b) Bivariate copula', fontsize='x-large')
+    # (c) Truncated D-vine copula
+    ax4 = fig.add_subplot(gs[1, :])
+    ax4.set_axis_off()
+    ax4.set_xlim(-5, 5)  # specify coordinate system for arrangement of images and boxes
+    ax4.set_ylim(-1, 2)
+    ax4.plot([-4, 4], [0, 0], color='g')  # line connecting text boxes
+    for x, s in zip([-4.3, 0, 4.3], ['EAIS', 'WAIS', 'GrIS']):  # marginals
+        ax4.text(x, 0, s, ha='center', va='center', fontsize=25,
+                 bbox=dict(boxstyle='square,pad=0.5', fc='azure', ec='blue'))
+        ax4.imshow(plt.imread(temp_dir / f'temp_{s}.png'), extent=[x-0.8, x+0.8, 0.4, 1.2])
+    for x, s in zip([-2, 2], ['EAIS–WAIS', 'WAIS–GrIS']):  # pair copulas
+        ax4.text(x, -0.1, f'{s}\npair copula', ha='center', va='top', fontsize=18, color='g')
+        ax4.imshow(plt.imread(temp_dir / 'temp_copula2.png'), extent=[x-0.9,x+0.9,0,1.8])
+    ax4.set_title('(c) Truncated vine copula', fontsize='x-large')
