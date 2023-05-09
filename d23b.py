@@ -19,6 +19,146 @@ import warnings
 import xarray as xr
 
 
+# Combined Antarctic ISM ensemble
+
+@cache
+def read_p21_l23_ism_data(ref_year=2015, target_year=2100):
+    """
+    Read combined Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023).
+
+    This function uses data from https://doi.org/10.5281/zenodo.4498331 and https://doi.org/10.5281/zenodo.7380180.
+
+    Parameters
+    ----------
+    ref_year : int
+        Reference year. Default is 2015 (which is the start year for Payne et al. data).
+    target_year : int
+        Target year for difference. Default is 2100.
+
+    Returns
+    -------
+    p21_l23_df : pandas DataFrame
+        A DataFrame containing WAIS and EAIS sea-level equivalents (in m), Group (P21_ISMIP6 or L23_MICI), and Notes.
+    """
+    # DataFrame to hold data
+    p21_l23_df = pd.DataFrame(columns=['WAIS', 'EAIS', 'Group', 'Notes'])
+
+    # Read Payne et al. data
+    # Location of data
+    payne_base = Path(f'data/CMIP5_CMIP6_Scalars_Paper')
+    in_dir = payne_base / 'AIS' / 'Ice'
+    # Conversion factor for ice sheet mass above floatation (Gt) to sea-level equivalent (m)
+    convert_Gt_m = 1. / 362.5 / 1e3  # Goelzer et al (2020): 362.5 Gt ~ 1 mm SLE
+    # Experiments of interest (all SSP5-8.5; see https://doi.org/10.5281/zenodo.4498331 README.txt)
+    exp_list = ['B1',  # CNRM-CM6-1 SSP5-8.5, open protocol
+                'B3',  # UKESM1-0-LL SSP5-8.5, open protocol
+                'B4',  # CESM2 SSP5-8.5, open protocol
+                'B5',  # CNRM-ESM2-1 SSP5-8.5, open protocol
+                'B6',  # CNRM-CM6-1 SSP5-8.5, standard protocol
+                'B8',  # UKESM1-0-LL SSP5-8.5, standard protocol
+                'B9',  # CESM2 SSP5-8.5, standard protocol
+                'B10']  # CNRM-ESM2-1 SSP5-8.5, standard protocol
+    # Loop over experiments
+    for exp in exp_list:
+        # Loop over available input files
+        in_fns = sorted(in_dir.glob(f'computed_limnsw_minus_ctrl_proj_AIS_*_exp{exp}.nc'))
+        for in_fn in in_fns:
+            # Create dictionary to hold data for this input file
+            ais_dict = {'Group': f'P21_ISMIP6'}
+            # Get ice-sheet model institute and name
+            ais_dict['Notes'] = '_'.join(in_fn.name.split('_')[-3:-1])
+            # Read DataSet
+            in_ds = xr.load_dataset(in_fn)
+            # Calculate SLE for target year relative to reference year for WAIS and EAIS
+            wais_da = in_ds[f'limnsw_region_{1}'] + in_ds[f'limnsw_region_{3}']  # include peninsula in WAIS
+            eais_da = in_ds[f'limnsw_region_{2}']
+            for region_name, in_da in [('WAIS', wais_da), ('EAIS', eais_da)]:
+                if ref_year == 2015:
+                    ais_dict[region_name] = float(in_da.sel(time=target_year)) * convert_Gt_m
+                else:
+                    ais_dict[region_name] = float(in_da.sel(time=target_year) - in_da.sel(time=ref_year)) * convert_Gt_m
+            # Append to DataFrame
+            p21_l23_df.loc[len(p21_l23_df)] = ais_dict
+
+    # Read Li et al. data
+    # Location of data
+    li_base = Path(f'data')
+    # Lists containing experiments of interest and CMIP6 GCMs
+    exp_dict = {'CMIP6_BC_1850-2100': 'L23_MICI'}
+    gcm_list = sorted([g.name for g in (li_base/'CMIP6_BC_1850-2100').glob('*') if g.is_dir()])
+    # Loop over experiments
+    for exp, group in exp_dict.items():
+        # Loop over GCMs
+        for gcm in gcm_list:
+            # Create dictionary to hold data for this input file
+            ais_dict = {'Group': group}
+            # Get ice-sheet model institute and name
+            ais_dict['Notes'] = f'{exp} {gcm}'
+            # Read data
+            in_fn = li_base / exp / gcm / 'fort.22'
+            try:
+                in_df = pd.read_fwf(in_fn, skiprows=1, index_col='time')
+            except ValueError:
+                in_df = pd.read_fwf(in_fn, skiprows=2, index_col='time')
+            # Get SLE for target year relative to reference year for WAIS and EAIS
+            for region_name, in_varname in [('WAIS', 'eofw(m)'), ('EAIS', 'eofe(m)')]:
+                ais_dict[region_name] = in_df.loc[ref_year][in_varname] - in_df.loc[target_year][in_varname]
+            # Append to DataFrame
+            p21_l23_df.loc[len(p21_l23_df)] = ais_dict
+
+    # Return result
+    return p21_l23_df
+
+
+def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
+    """
+    Plot figure showing combined ISM ensemble WAIS vs EAIS on (a) GMSLR scale and (b) copula scale.
+
+    Parameters
+    ----------
+    ref_year : int
+        Reference year. Default is 2015 (which is the start year for Payne et al. data).
+    target_year : int
+        Target year for difference. Default is 2100.
+
+    Returns
+    -------
+    bicop : pv.Bicop
+        Fitted copula.
+    fig : Figure
+    axs : array of Axes
+    """
+    # Read combined Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023)
+    p21_l23_df = read_p21_l23_ism_data(ref_year=ref_year, target_year=target_year)
+    # Create Figure and Axes
+    fig, axs = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
+    # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
+    ax = axs[0]
+    sns.scatterplot(p21_l23_df, x='EAIS', y='WAIS', hue='Group', style='Group', ax=ax)
+    ax.legend(loc='lower right', framealpha=1, edgecolor='0.85')  # specify edgecolor consistent with box in (b)
+    ax.set_title(f'(a) Contribution to GMSLR')
+    ax.set_xlabel('EAIS, m')
+    ax.set_ylabel('WAIS, m')
+    # (b) Pseudo-copula data on copula scale
+    ax = axs[1]
+    x_n2 = np.stack([p21_l23_df['EAIS'], p21_l23_df['WAIS']], axis=1)
+    u_n2 = pv.to_pseudo_obs(x_n2)
+    u_df = pd.DataFrame({'EAIS': u_n2[:, 0], 'WAIS': u_n2[:, 1], 'Group': p21_l23_df['Group']})
+    sns.scatterplot(u_df, x='EAIS', y='WAIS', hue='Group', style='Group', legend=False, ax=ax)
+    ax.set_title(f'(b) Pseudo-copula data')
+    ax.set_xlabel('EAIS')
+    ax.set_ylabel('WAIS')
+    ax.set_xlim([0, 1])
+    ax.set_ylim([0, 1])
+    # Fit copula (limited to single-parameter families)
+    controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
+                                               pv.BicopFamily.gaussian, pv.BicopFamily.frank, pv.BicopFamily.clayton])
+    bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
+    ax.text(0.8, 0.04, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.3f}',
+            ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
+    return bicop, fig, axs
+
+
 # Marginals of ice-sheet component projections
 
 @cache
@@ -250,146 +390,6 @@ def fig_ice_sheet_marginals(projection_source='fusion', scenario='SSP5-8.5', yea
     axs[-1].set_xlabel(f'Contribution to GMSLR (2005–{year}), m')
     axs[-1].set_xlim([-0.5, 2.0])
     return fig, axs
-
-
-# Combined Antarctic ISM ensemble
-
-@cache
-def read_p21_l23_ism_data(ref_year=2015, target_year=2100):
-    """
-    Read combined Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023).
-
-    This function uses data from https://doi.org/10.5281/zenodo.4498331 and https://doi.org/10.5281/zenodo.7380180.
-
-    Parameters
-    ----------
-    ref_year : int
-        Reference year. Default is 2015 (which is the start year for Payne et al. data).
-    target_year : int
-        Target year for difference. Default is 2100.
-
-    Returns
-    -------
-    p21_l23_df : pandas DataFrame
-        A DataFrame containing WAIS and EAIS sea-level equivalents (in m), Group (P21_ISMIP6 or L23_MICI), and Notes.
-    """
-    # DataFrame to hold data
-    p21_l23_df = pd.DataFrame(columns=['WAIS', 'EAIS', 'Group', 'Notes'])
-
-    # Read Payne et al. data
-    # Location of data
-    payne_base = Path(f'data/CMIP5_CMIP6_Scalars_Paper')
-    in_dir = payne_base / 'AIS' / 'Ice'
-    # Conversion factor for ice sheet mass above floatation (Gt) to sea-level equivalent (m)
-    convert_Gt_m = 1. / 362.5 / 1e3  # Goelzer et al (2020): 362.5 Gt ~ 1 mm SLE
-    # Experiments of interest (all SSP5-8.5; see https://doi.org/10.5281/zenodo.4498331 README.txt)
-    exp_list = ['B1',  # CNRM-CM6-1 SSP5-8.5, open protocol
-                'B3',  # UKESM1-0-LL SSP5-8.5, open protocol
-                'B4',  # CESM2 SSP5-8.5, open protocol
-                'B5',  # CNRM-ESM2-1 SSP5-8.5, open protocol
-                'B6',  # CNRM-CM6-1 SSP5-8.5, standard protocol
-                'B8',  # UKESM1-0-LL SSP5-8.5, standard protocol
-                'B9',  # CESM2 SSP5-8.5, standard protocol
-                'B10']  # CNRM-ESM2-1 SSP5-8.5, standard protocol
-    # Loop over experiments
-    for exp in exp_list:
-        # Loop over available input files
-        in_fns = sorted(in_dir.glob(f'computed_limnsw_minus_ctrl_proj_AIS_*_exp{exp}.nc'))
-        for in_fn in in_fns:
-            # Create dictionary to hold data for this input file
-            ais_dict = {'Group': f'P21_ISMIP6'}
-            # Get ice-sheet model institute and name
-            ais_dict['Notes'] = '_'.join(in_fn.name.split('_')[-3:-1])
-            # Read DataSet
-            in_ds = xr.load_dataset(in_fn)
-            # Calculate SLE for target year relative to reference year for WAIS and EAIS
-            wais_da = in_ds[f'limnsw_region_{1}'] + in_ds[f'limnsw_region_{3}']  # include peninsula in WAIS
-            eais_da = in_ds[f'limnsw_region_{2}']
-            for region_name, in_da in [('WAIS', wais_da), ('EAIS', eais_da)]:
-                if ref_year == 2015:
-                    ais_dict[region_name] = float(in_da.sel(time=target_year)) * convert_Gt_m
-                else:
-                    ais_dict[region_name] = float(in_da.sel(time=target_year) - in_da.sel(time=ref_year)) * convert_Gt_m
-            # Append to DataFrame
-            p21_l23_df.loc[len(p21_l23_df)] = ais_dict
-
-    # Read Li et al. data
-    # Location of data
-    li_base = Path(f'data')
-    # Lists containing experiments of interest and CMIP6 GCMs
-    exp_dict = {'CMIP6_BC_1850-2100': 'L23_MICI'}
-    gcm_list = sorted([g.name for g in (li_base/'CMIP6_BC_1850-2100').glob('*') if g.is_dir()])
-    # Loop over experiments
-    for exp, group in exp_dict.items():
-        # Loop over GCMs
-        for gcm in gcm_list:
-            # Create dictionary to hold data for this input file
-            ais_dict = {'Group': group}
-            # Get ice-sheet model institute and name
-            ais_dict['Notes'] = f'{exp} {gcm}'
-            # Read data
-            in_fn = li_base / exp / gcm / 'fort.22'
-            try:
-                in_df = pd.read_fwf(in_fn, skiprows=1, index_col='time')
-            except ValueError:
-                in_df = pd.read_fwf(in_fn, skiprows=2, index_col='time')
-            # Get SLE for target year relative to reference year for WAIS and EAIS
-            for region_name, in_varname in [('WAIS', 'eofw(m)'), ('EAIS', 'eofe(m)')]:
-                ais_dict[region_name] = in_df.loc[ref_year][in_varname] - in_df.loc[target_year][in_varname]
-            # Append to DataFrame
-            p21_l23_df.loc[len(p21_l23_df)] = ais_dict
-
-    # Return result
-    return p21_l23_df
-
-
-def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
-    """
-    Plot figure showing combined ISM ensemble WAIS vs EAIS on (a) GMSLR scale and (b) copula scale.
-
-    Parameters
-    ----------
-    ref_year : int
-        Reference year. Default is 2015 (which is the start year for Payne et al. data).
-    target_year : int
-        Target year for difference. Default is 2100.
-
-    Returns
-    -------
-    bicop : pv.Bicop
-        Fitted copula.
-    fig : Figure
-    axs : array of Axes
-    """
-    # Read combined Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023)
-    p21_l23_df = read_p21_l23_ism_data(ref_year=ref_year, target_year=target_year)
-    # Create Figure and Axes
-    fig, axs = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
-    # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
-    ax = axs[0]
-    sns.scatterplot(p21_l23_df, x='EAIS', y='WAIS', hue='Group', style='Group', ax=ax)
-    ax.legend(loc='lower right', framealpha=1, edgecolor='0.85')  # specify edgecolor consistent with box in (b)
-    ax.set_title(f'(a) Contribution to GMSLR')
-    ax.set_xlabel('EAIS, m')
-    ax.set_ylabel('WAIS, m')
-    # (b) Pseudo-copula data on copula scale
-    ax = axs[1]
-    x_n2 = np.stack([p21_l23_df['EAIS'], p21_l23_df['WAIS']], axis=1)
-    u_n2 = pv.to_pseudo_obs(x_n2)
-    u_df = pd.DataFrame({'EAIS': u_n2[:, 0], 'WAIS': u_n2[:, 1], 'Group': p21_l23_df['Group']})
-    sns.scatterplot(u_df, x='EAIS', y='WAIS', hue='Group', style='Group', legend=False, ax=ax)
-    ax.set_title(f'(b) Pseudo-copula data')
-    ax.set_xlabel('EAIS')
-    ax.set_ylabel('WAIS')
-    ax.set_xlim([0, 1])
-    ax.set_ylim([0, 1])
-    # Fit copula (limited to single-parameter families)
-    controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
-                                               pv.BicopFamily.gaussian, pv.BicopFamily.frank, pv.BicopFamily.clayton])
-    bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
-    ax.text(0.8, 0.04, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.3f}',
-            ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
-    return bicop, fig, axs
 
 
 # Sample copulas and joint distributions
