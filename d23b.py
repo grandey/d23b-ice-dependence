@@ -891,7 +891,7 @@ def ax_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.a
         Thresholds to use if demonstrating the difference in timing at the 95th percentile and median.
         If True, select automatically. Default is True.
     n_samples : int
-        Number of samples to generate for each family and tau. Default is int(1e5).
+        Number of samples to generate for each copula. Default is int(1e5).
     ax : Axes.
         Axes on which to plot. If None, new Axes are created. Default is None.
 
@@ -965,3 +965,62 @@ def ax_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.a
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
     ax.legend(loc='upper left', fontsize='large')
     return ax
+
+
+def fig_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.arange(2020, 2101, 10),
+                      families_a=(pv.BicopFamily.gaussian, pv.BicopFamily.indep), taus_a=(1.0, 0.0),
+                      colors_a=('darkgreen', 'darkorange'), title_a='Perfect dependence & independence',
+                      families_b=(pv.BicopFamily.joe, pv.BicopFamily.clayton), taus_b=(0.5, 0.5),
+                      colors_b=('darkred', 'blue'), title_b='Two copula families',
+                      thresh_for_timing_diff=(1.4, 0.2), ylim=(-0.2, 2.3), n_samples=int(1e5)):
+    """
+    Plot figure showing median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs time (x-axis)
+    for different copulas (in two panels, a and b).
+
+    Parameters
+    ----------
+    projection_source : str
+        The projection source for the marginal distributions. Default is 'fusion'.
+    scenario : str
+        The scenario for the marginal distributions. Default is 'SSP5-8.5'
+    years : np.array
+        Years for which to plot data. Default is np.arange(2020, 2101, 10).
+    families_a and families_b : tuple
+        Pair copula families to use for panels (a) and (b).
+        Default is (pv.BicopFamily.gaussian, pv.BicopFamily.indep) and (pv.BicopFamily.joe, pv.BicopFamily.clayton).
+    taus_a and taus_b: tuple
+        Pair copula Kendall's tau values. Default is (1.0, 0.0) and (0.5, 0.5).
+    colors_a and colors_b : tuple
+        Colors to use when plotting. Default is ('darkgreen', 'darkorange') and ('darkred', 'blue').
+    title_a and title_b : str
+        Titles for panels (a) and (b).
+    thresh_for_timing_diff : tuple, True, or None
+        Thresholds to use if demonstrating the difference in timing at the 95th percentile and median.
+        If True, select automatically. Default is (1.4, 0.2).
+    ylim : tuple
+        Limits for y-axis. Default is (-0.2, 2.3).
+    n_samples : int
+        Number of samples to generate for each copula. Default is int(1e5).
+
+    Returns
+    -------
+    fig : Figure
+    axs : array of Axes
+    """
+    # Create figure and axes
+    fig, axs = plt.subplots(1, 2, figsize=(12, 5), sharey=True, constrained_layout=True)
+    # (a)
+    ax = axs[0]
+    _ = ax_total_vs_time(projection_source=projection_source, scenario=scenario, years=years,
+                         families=families_a, rotations=(0, )*2, taus=taus_a, colors=colors_a,
+                         thresh_for_timing_diff=thresh_for_timing_diff, n_samples=n_samples, ax=ax)
+    ax.set_title(f'(a) {title_a}')
+    # (b)
+    ax = axs[1]
+    _ = ax_total_vs_time(projection_source=projection_source, scenario=scenario, years=years,
+                         families=families_b, rotations=(0, )*2, taus=taus_b, colors=colors_b,
+                         thresh_for_timing_diff=thresh_for_timing_diff, n_samples=n_samples, ax=ax)
+    ax.set_title(f'(b) {title_b}')
+    ax.set_ylabel(None)
+    ax.set_ylim(ylim)
+    return fig, axs
