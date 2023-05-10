@@ -477,7 +477,7 @@ def sample_dvine_copula(families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussi
     # Specify truncated D-vine structure
     struc = pv.DVineStructure(np.arange(len(families)+1)+1, trunc_lvl=1)
     # Create vine copula
-    cop = pv.Vinecop(struc, [bicops,])
+    cop = pv.Vinecop(struc, [bicops, ])
     # Simulate data
     u_nm = cop.simulate(n=n_samples, seeds=[1, 2, 3, 4, 5])
     # Plot?
@@ -620,7 +620,7 @@ def sample_trivariate_distribution(projection_source='fusion', scenario='SSP5-8.
 
 # Figure illustrating bivariate distribution, bivariate copula, and truncated vine copula
 
-@cache
+
 def fig_illustrate_bivariate_copula_vine(projection_source='fusion', scenario='SSP5-8.5', year=2100,
                                          family=pv.BicopFamily.gaussian, rotation=0, tau=0.5, n_samples=int(1e5)):
     """
@@ -739,5 +739,127 @@ def fig_illustrate_bivariate_copula_vine(projection_source='fusion', scenario='S
         ax4.imshow(plt.imread(temp_dir / f'temp_{s}.png'), extent=[x-0.8, x+0.8, 0.4, 1.2])
     for x, s in zip([-2, 2], ['EAIS–WAIS', 'WAIS–GrIS']):  # pair copulas
         ax4.text(x, -0.1, f'{s}\npair copula', ha='center', va='top', fontsize=18, color='g')
-        ax4.imshow(plt.imread(temp_dir / 'temp_copula2.png'), extent=[x-0.9,x+0.9,0,1.8])
+        ax4.imshow(plt.imread(temp_dir / 'temp_copula2.png'), extent=[x-0.9, x+0.9, 0, 1.8])
     ax4.set_title('(c) Truncated vine copula', fontsize='x-large')
+
+
+# Figures showing total ice-sheet contribution
+
+def ax_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
+                    families=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
+                    rotations=(0, 0),
+                    colors=('darkred', 'blue'),
+                    n_samples=int(1e5), ax=None):
+    """
+    Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs Kendall's tau (x-axis).
+
+    Parameters
+    ----------
+    projection_source : str
+        The projection source for the marginal distributions. Default is 'fusion'.
+    scenario : str
+        The scenario for the marginal distributions. Default is 'SSP5-8.5'
+    year : int
+        Year for which to plot data. Default is 2100.
+    families : tuple
+        Pair copula families. Default is (pv.BicopFamily.joe, pv.BicopFamily.clayton).
+    rotations : tuple
+        Pair copula rotations. Default is (0, 0, 0).
+    colors : tuple
+        Colors to use when plotting. Default is ('darkred', 'blue').
+    n_samples : int
+        Number of samples to generate for each family and tau. Default is int(1e5).
+    ax : Axes.
+        Axes on which to plot. If None, new Axes are created. Default is None.
+
+    Returns
+    -------
+    ax : Axes.
+        Axes on which data have been plotted.
+    """
+    # Create axes?
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+    # For each family, calculate EAIS+WAIS+GIS for different tau values and plot median & 5th-95th
+    for family, rotation, color, hatch, linestyle, linewidth in zip(families, rotations, colors,
+                                                                    ('//', r'\\'), ('--', '-.'), (3, 2)):
+        if family == 'Mixture':
+            families2 = 'Mixture'  # used when calling sample_trivariate_distribution() below
+            label = 'Mixture'  # label to use in legend
+        else:
+            families2 = (family, )*2
+            label = family.name.capitalize()
+        tau_t = np.linspace(0, 1, 51)  # tau values to use
+        p50_t = np.full(len(tau_t), np.nan)  # array to hold median at each tau
+        p5_t = np.full(len(tau_t), np.nan)  # 5th percentile
+        p95_t = np.full(len(tau_t), np.nan)  # 95th percentile
+        for t, tau in enumerate(tau_t):  # calculate total ice-sheet contribution at each tau value
+            x_n3 = sample_trivariate_distribution(projection_source=projection_source, scenario=scenario, year=year,
+                                                  families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
+                                                  n_samples=n_samples, plot=False)
+            p50_t[t] = np.percentile(x_n3.sum(axis=1), 50)  # median
+            p5_t[t] = np.percentile(x_n3.sum(axis=1), 5)  # 5th percentile
+            p95_t[t] = np.percentile(x_n3.sum(axis=1), 95)  # 95th percentile
+        # Plot data for this family
+        ax.fill_between(tau_t, p5_t, p95_t, color=color, alpha=0.2, label=f'{label} (5th–95th)', hatch=hatch)
+        ax.plot(tau_t, p50_t, color=color, label=f'{label} (median)', linestyle=linestyle, linewidth=linewidth)
+    # Customize plot
+    ax.legend(loc='upper left', fontsize='large')
+    ax.set_xlim(tau_t[0], tau_t[-1])
+    ax.set_xlabel(r"Kendall's $\bf{\tau}$")
+    ax.set_ylabel(f'Total ice-sheet contribution (2005–{year}), m')
+    ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
+    ax.xaxis.set_minor_locator(plt.FixedLocator(tau_t))
+    ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
+    ax.set_title(f'{projection_source} {scenario} {year}')
+    return ax
+
+
+def fig_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
+                     families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
+                     colors_a=('green', ), colors_b=('darkred', 'blue'), ylim=(-0.2, 2.8),
+                     n_samples=int(1e5)):
+    """
+    Plot figure showing median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs Kendall's
+    tau (x-axis) for (a) Gaussian pair copulas and (b) Joe/Clayton pair copulas (default).
+
+    Parameters
+    ----------
+    projection_source : str
+        The projection source for the marginal distributions. Default is 'fusion'.
+    scenario : str
+        The scenario for the marginal distributions. Default is 'SSP5-8.5'
+    year : int
+        Year for which to plot data. Default is 2100.
+    families_a and families_b : tuple
+        Pair copula families to use for panels (a) and (b).
+        Default is (pv.BicopFamily.gaussian, ) and (pv.BicopFamily.joe, pv.BicopFamily.clayton).
+    colors_a and colors_b : tuple
+        Colors to use when plotting. Default is ('green', ) and ('darkred', 'blue').
+    ylim : tuple
+        Limits for y-axis. Default is (-0.2, 2.8).
+    n_samples : int
+        Number of samples to generate for each family and tau. Default is int(1e5).
+
+    Returns
+    -------
+    fig : Figure
+    axs : array of Axes
+    """
+    # Create figure and axes
+    fig, axs = plt.subplots(1, 2, figsize=(12, 5), sharey=True, constrained_layout=True)
+    # (a)
+    ax = axs[0]
+    _ = ax_total_vs_tau(projection_source=projection_source, scenario=scenario, year=year,
+                        families=families_a, colors=colors_a,
+                        n_samples=n_samples, ax=ax)
+    ax.set_title(f'(a) {" and ".join(f.name.capitalize() for f in families_a)} pair copulas')
+    # (b)
+    ax = axs[1]
+    _ = ax_total_vs_tau(projection_source=projection_source, scenario=scenario, year=year,
+                        families=families_b, colors=colors_b,
+                        n_samples=n_samples, ax=ax)
+    ax.set_title(f'(b) {" and ".join(f.name.capitalize() for f in families_b)} pair copulas')
+    ax.set_ylabel(None)
+    ax.set_ylim(ylim)
+    return fig, axs
