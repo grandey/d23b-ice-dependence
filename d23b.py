@@ -764,7 +764,7 @@ def ax_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
     families : tuple
         Pair copula families. Default is (pv.BicopFamily.joe, pv.BicopFamily.clayton).
     rotations : tuple
-        Pair copula rotations. Default is (0, 0, 0).
+        Pair copula rotations. Default is (0, 0).
     colors : tuple
         Colors to use when plotting. Default is ('darkred', 'blue').
     n_samples : int
@@ -780,7 +780,7 @@ def ax_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
     # Create axes?
     if ax is None:
         fig, ax = plt.subplots(1, 1)
-    # For each family, calculate EAIS+WAIS+GIS for different tau values and plot median & 5th-95th
+    # For each copula, calculate EAIS+WAIS+GIS for different tau values and plot median & 5th-95th
     for family, rotation, color, hatch, linestyle, linewidth in zip(families, rotations, colors,
                                                                     ('//', r'\\'), ('--', '-.'), (3, 2)):
         if family == 'Mixture':
@@ -793,7 +793,7 @@ def ax_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
         p50_t = np.full(len(tau_t), np.nan)  # array to hold median at each tau
         p5_t = np.full(len(tau_t), np.nan)  # 5th percentile
         p95_t = np.full(len(tau_t), np.nan)  # 95th percentile
-        for t, tau in enumerate(tau_t):  # calculate total ice-sheet contribution at each tau value
+        for t, tau in enumerate(tau_t):  # for each tau, calculate total ice-sheet contribution
             x_n3 = sample_trivariate_distribution(projection_source=projection_source, scenario=scenario, year=year,
                                                   families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
                                                   n_samples=n_samples, plot=False)
@@ -863,3 +863,105 @@ def fig_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
     ax.set_ylabel(None)
     ax.set_ylim(ylim)
     return fig, axs
+
+
+def ax_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.arange(2020, 2101, 10),
+                     families=(pv.BicopFamily.gaussian, pv.BicopFamily.indep), rotations=(0, 0), taus=(1.0, 0.0),
+                     colors=('darkgreen', 'darkorange'), thresh_for_timing_diff=True, n_samples=int(1e5), ax=None):
+    """
+    Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs time (x-axis).
+
+    Parameters
+    ----------
+    projection_source : str
+        The projection source for the marginal distributions. Default is 'fusion'.
+    scenario : str
+        The scenario for the marginal distributions. Default is 'SSP5-8.5'
+    years : np.array
+        Years for which to plot data. Default is np.arange(2020, 2101, 10).
+    families : tuple
+        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.indep).
+    rotations : tuple
+        Pair copula rotations. Default is (0, 0).
+    taus: tuple
+        Pair copula Kendall's tau values. Default is (1.0, 0.0).
+    colors : tuple
+        Colors to use when plotting. Default is ('darkgreen', 'darkorange').
+    thresh_for_timing_diff : tuple, True, or None
+        Thresholds to use if demonstrating the difference in timing at the 95th percentile and median.
+        If True, select automatically. Default is True.
+    n_samples : int
+        Number of samples to generate for each family and tau. Default is int(1e5).
+    ax : Axes.
+        Axes on which to plot. If None, new Axes are created. Default is None.
+
+    Returns
+    -------
+    ax : Axes.
+        Axes on which data have been plotted.
+    """
+    # Create axes?
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+    # List to hold DataFrames created below
+    data_dfs = []
+    # For each copula, calculate EAIS+WAIS+GrIS for different years and plot median & 5th-95th percentile range
+    for family, rotation, tau, color, hatch, linestyle, linewidth in zip(families, rotations, taus, colors,
+                                                                         ('//', r'\\'), ('--', '-.'), (3, 2)):
+        if family == 'Mixture':
+            families2 = 'Mixture'  # used when calling sample_trivariate_distribution() below
+            label = 'Mixture'  # label to use in legend
+            if len(tau) == 2:
+                label = f'{label}, $\\tau$ ~ U({tau[0]},{tau[1]})'
+        else:
+            families2 = (family, )*2
+            label = family.name.capitalize()
+            label = f'{label}, $\\tau$ = {tau}'
+        data_df = pd.DataFrame()  # create DataFrame to hold percentile time series for this copula
+        # For each year, calculate percentiles of EAIS+WAIS+GrIS
+        for year in years:
+            x_n3 = sample_trivariate_distribution(projection_source=projection_source, scenario=scenario, year=year,
+                                                  families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
+                                                  n_samples=n_samples, plot=False)
+            for perc in (5, 50, 95):
+                data_df.loc[year, perc] = np.percentile(x_n3.sum(axis=1), perc)
+        # Plot
+        ax.fill_between(data_df.index, data_df[5], data_df[95], label=f'{label} (5th–95th)',  # plot
+                        color=color, alpha=0.2, hatch=hatch)
+        sns.lineplot(data_df[50], color=color, label=f'{label} (median)',
+                     linestyle=linestyle, linewidth=linewidth, ax=ax)
+        # Save percentile time series to list of DataFrames
+        data_dfs.append(data_df)
+    # Plot lines showing timing differences?
+    if thresh_for_timing_diff:
+        # Select thresholds automatically?
+        if thresh_for_timing_diff is True:
+            thresh_for_timing_diff = [min(max(data_dfs[0][perc]), max(data_dfs[1][perc])) for perc in (95, 50)]
+        # Loop over thresholds
+        for thresh, perc in zip(thresh_for_timing_diff, (95, 50)):
+            # Find year at which percentile is closest to threshold for first two copulas
+            year_eq_threshs = []  # list to hold years closest to threshold
+            for data_df in data_dfs[0:2]:
+                interp_years = np.arange(years[0], years[-1]+1, 1)  # interpolate years
+                interp_perc = np.interp(interp_years, data_df.index, data_df[perc])  # interpolate data at percentile
+                idx = np.abs(interp_perc - thresh).argmin()  # index closest to threshold
+                year_eq_threshs.append(interp_years[idx])  # year closest to threshold
+            # Calculate timing difference
+            timing_diff = max(year_eq_threshs) - min(year_eq_threshs)
+            if timing_diff > 0:
+                # Plot line and text showing timing difference
+                ax.plot(year_eq_threshs, [thresh, ]*2, color='k', marker='|')
+                text_str = f'{timing_diff} yr'
+                ax.text(np.mean(year_eq_threshs), thresh+0.07, text_str,
+                        horizontalalignment='center', fontsize='large')
+                # Plot line showing threshold
+                ax.axhline(thresh, alpha=0.3, color='k', linestyle=':')
+    # Customize plot
+    ax.set_xlim(years[0], years[-1])
+    ax.set_xlabel('Year')
+    ax.set_ylabel(f'Total ice-sheet contribution, m')
+    ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
+    ax.xaxis.set_minor_locator(plt.MultipleLocator(1))
+    ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
+    ax.legend(loc='upper left', fontsize='large')
+    return ax
