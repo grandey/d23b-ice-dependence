@@ -620,7 +620,6 @@ def sample_trivariate_distribution(projection_source='fusion', scenario='SSP5-8.
 
 # Figure illustrating bivariate distribution, bivariate copula, and truncated vine copula
 
-
 def fig_illustrate_bivariate_copula_vine(projection_source='fusion', scenario='SSP5-8.5', year=2100,
                                          family=pv.BicopFamily.gaussian, rotation=0, tau=0.5, n_samples=int(1e5)):
     """
@@ -1024,3 +1023,39 @@ def fig_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.
     ax.set_ylabel(None)
     ax.set_ylim(ylim)
     return fig, axs
+
+
+# Influence of GRD fingerprints
+
+@cache
+def get_gauge_info(gauge='TANJONG_PAGAR'):
+    """
+    Get name, ID, latitude, and longitude of tide gauge, using location.lst in FACTS
+    (https://doi.org/10.5281/zenodo.7573653).
+
+    Parameters
+    ----------
+    gauge : int or str
+        ID or name of gauge. Default is 'TANJONG_PAGAR' (equivalent to 1746).
+
+    Returns
+    ----------
+    gauge_info : dict
+        Dictionary containing gauge_name, gauge_id, lat, lon.
+    """
+    # Read input file into DataFrame
+    in_dir = Path('data/radical-collaboration-facts-5086a75/input_files')
+    in_fn = in_dir / 'location.lst'
+    in_df = pd.read_csv(in_fn, sep='\t', names=['gauge_name', 'gauge_id', 'lat', 'lon'])
+    # Get data for gauge of interest
+    try:
+        if type(gauge) == str:
+            df = in_df[in_df.gauge_name == gauge]
+        else:
+            df = in_df[in_df.gauge_id == gauge]
+        gauge_info = dict()
+        for c in ['gauge_name', 'gauge_id', 'lat', 'lon']:
+            gauge_info[c] = df[c].values[0]
+    except IndexError:
+        raise ValueError(f"gauge='{gauge}' not found.")
+    return gauge_info
