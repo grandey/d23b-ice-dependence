@@ -1099,3 +1099,92 @@ def get_gauge_grd(gauge='TANJONG_PAGAR'):
         if component == 'GIS':  # duplicate GIS as GrIS
             gauge_grd['GrIS'] = float(in_da.data)*1000
     return gauge_grd
+
+
+def ax_sum_vs_gris_fingerprint(projection_source='fusion', scenario='SSP5-8.5', year=2100,
+                               families=(pv.BicopFamily.gaussian, pv.BicopFamily.indep),
+                               rotations=(0, 0), taus=(1.0, 0.0), colors=('darkgreen', 'darkorange'),
+                               n_samples=int(1e5), ax=None):
+    """
+    Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs GrIS GRD fingerprint (x-axis).
+
+    Parameters
+    ----------
+    projection_source : str
+        The projection source for the marginal distributions. Default is 'fusion'.
+    scenario : str
+        The scenario for the marginal distributions. Default is 'SSP5-8.5'
+    year : int
+        Target year for which to plot data. Default is 2100.
+    families : tuple
+        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.indep).
+    rotations : tuple
+        Pair copula rotations. Default is (0, 0).
+    taus: tuple
+        Pair copula Kendall's tau values. Default is (1.0, 0.0).
+    colors : tuple
+        Colors to use when plotting. Default is ('darkgreen', 'darkorange').
+    n_samples : int
+        Number of samples to generate for each copula. Default is int(1e5).
+    ax : Axes.
+        Axes on which to plot. If None, new Axes are created. Default is None.
+
+    Returns
+    -------
+    ax : Axes.
+        Axes on which data have been plotted.
+    """
+    # Create axes?
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 5), constrained_layout=True)
+    # GRD fingerprints to use
+    eais_fp = 1.10
+    wais_fp = 1.15
+    gris_fp_g = np.arange(-1.8, 1.21, 0.05)  # _g indicates GrIS fingerprint dimension
+    # For each copula, calculate EAIS+WAIS+GrIS for different GrIS fingerprints and plot median & 5th-95th range
+    for family, rotation, tau, color, hatch, linestyle, linewidth in zip(families, rotations, taus, colors,
+                                                                         ('//', r'\\'), ('--', '-.'), (3, 2)):
+        if family == 'Mixture':
+            families2 = 'Mixture'  # used when calling sample_trivariate_distribution() below
+            label = 'Mixture'  # label to use in legend
+            if len(tau) == 2:
+                label = f'{label}, $\\tau$ ~ U({tau[0]},{tau[1]})'
+        else:
+            families2 = (family, )*2
+            label = family.name.capitalize()
+            label = f'{label}, $\\tau$ = {tau}'
+        # Get trivariate distribution data for global mean (ie fingerprints all 1.0)
+        x_n3 = sample_trivariate_distribution(projection_source=projection_source, scenario=scenario, year=year,
+                                              families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
+                                              n_samples=n_samples, plot=False)
+        # Create DataFrame to hold percentile data across GrIS fingerprints
+        data_df = pd.DataFrame()
+        # Loop over GrIS fingerprints and calculate 5th, 50th, and 95th percentiles of total ice-sheet contribution
+        for gris_fp in gris_fp_g:
+            for perc in (5, 50, 95):
+                sum_n = eais_fp * x_n3[:, 0] + wais_fp * x_n3[:, 1] + gris_fp * x_n3[:, 2]
+                data_df.loc[gris_fp, perc] = np.percentile(sum_n, perc)
+        # Plot data for this copula
+        ax.fill_between(data_df.index, data_df[5], data_df[95], color=color, alpha=0.2, hatch=hatch,
+                        label=f'{label} (5th–95th)')
+        sns.lineplot(data_df[50], color=color, label=f'{label} (median)', linestyle=linestyle, linewidth=linewidth,
+                     ax=ax)
+    # Customize plot
+    ax.legend(loc='upper left', framealpha=1, fontsize='large')
+    ax.set_xlim(gris_fp_g[0], gris_fp_g[-1])
+    ax.set_xlabel('Fingerprint of GrIS')
+    ax.set_ylabel(f'Total ice-sheet contribution (2005–{year}), m')
+    ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
+    ax.xaxis.set_minor_locator(plt.FixedLocator(gris_fp_g))
+    ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
+    ax.set_title('GRD fingerprints influence ice-sheet contribution to RSLC')
+    # Annotations
+    ax.text(1, -0.15, f'Fingerprint of EAIS = {eais_fp:.2f}\nFingerprint of WAIS = {wais_fp:.2f}',
+            transform=ax.transAxes, ha='right', va='bottom')
+    ax.set_ylim(ax.get_ylim())  # fix y-axis limits before plotting points near limit
+    for gauge, city in [('REYKJAVIK', 'Reykjavik'), ('DUBLIN', 'Dublin'), ('TANJONG_PAGAR', 'Singapore')]:
+        gris_fp = get_gauge_grd(gauge=gauge)['GrIS']
+        plt.axvline(gris_fp, color='red', linestyle='--', alpha=0.5)
+        ax.text(gris_fp, ax.get_ylim()[0]+0.02, city, color='red', fontsize='large',
+                ha='right', va='bottom', rotation=90)
+    return ax
