@@ -20,6 +20,16 @@ import warnings
 import xarray as xr
 
 
+# Matplotlib settings
+plt.rcParams['axes.titlesize'] = 'x-large'
+plt.rcParams['axes.titleweight'] = 'bold'
+plt.rcParams['axes.labelsize'] = 'large'
+plt.rcParams['axes.labelweight'] = 'bold'
+plt.rcParams['xtick.labelsize'] = 'large'
+plt.rcParams['ytick.labelsize'] = 'large'
+plt.rcParams['savefig.dpi'] = 300
+
+
 # Combined Antarctic ISM ensemble
 
 @cache
@@ -136,8 +146,9 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
     ax = axs[0]
     sns.scatterplot(p21_l23_df, x='EAIS', y='WAIS', hue='Group', style='Group', ax=ax)
-    ax.legend(loc='lower right', framealpha=1, edgecolor='0.85')  # specify edgecolor consistent with box in (b)
-    ax.set_title(f'(a) Contribution to GMSLR')
+    ax.legend(loc='lower right', fontsize='large', framealpha=1,
+              edgecolor='0.85')  # specify edgecolor consistent with box in (b)
+    ax.set_title(f'(a) ISM ensemble WAIS vs EAIS')
     ax.set_xlabel('EAIS, m')
     ax.set_ylabel('WAIS, m')
     # (b) Pseudo-copula data on copula scale
@@ -155,8 +166,8 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
                                                pv.BicopFamily.gaussian, pv.BicopFamily.frank, pv.BicopFamily.clayton])
     bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
-    ax.text(0.8, 0.04, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.3f}',
-            ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
+    ax.text(0.75, 0.06, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.3f}',
+            fontsize='large', ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
     return bicop, fig, axs
 
 
