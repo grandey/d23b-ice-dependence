@@ -1059,3 +1059,43 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
     except IndexError:
         raise ValueError(f"gauge='{gauge}' not found.")
     return gauge_info
+
+
+@cache
+def get_gauge_grd(gauge='TANJONG_PAGAR'):
+    """
+    Get GRD fingerprints near a tide gauge location, using fingerprints from the FACTS module data
+    (https://doi.org/10.5281/zenodo.7478192).
+
+    Parameters
+    ----------
+    gauge : int or str
+        ID or name of gauge. Default is 'TANJONG_PAGAR' (equivalent to 1746)
+
+    Returns
+    ----------
+    gauge_grd : dict
+        Dictionary containing gauge_name, gauge_id, lat, lon (from get_gauge_info), alongside
+        lat_grd, lon_grd (nearest GRD data location used) and EAIS, WAIS, GrIS weights.
+    """
+    # Get gauge info, including location
+    gauge_grd = get_gauge_info(gauge)
+    lat, lon = gauge_grd['lat'], gauge_grd['lon']
+    # Express longitude as +ve (deg E), for consistency with fingerprint data
+    if lon < 0.:
+        lon += 360
+    # Get GRD fingerprint for each ice sheet, using nearest location with GRD data
+    in_dir = Path('data/grd_fingerprints_data/FPRINT')
+    for component in ['EAIS', 'WAIS', 'GIS']:  # FACTS uses 'GIS' instead of 'GrIS'
+        in_fn = in_dir / f'fprint_{component.lower()}.nc'
+        try:
+            in_da = xr.open_dataset(in_fn)['fp'].sel(lat=lat, lon=lon, method='nearest', tolerance=1.)
+        except KeyError:
+            raise ValueError(f"For gauge='{gauge}', suitable GRD data not found within lat-lon tolerance.")
+        if component == 'EAIS':  # record location used for GRD data - do this only once
+            gauge_grd['lat_grd'] = float(in_da['lat'].data)
+            gauge_grd['lon_grd'] = float(in_da['lon'].data)
+        gauge_grd[component] = float(in_da.data)*1000  # save fingerprint to dictionary
+        if component == 'GIS':  # duplicate GIS as GrIS
+            gauge_grd['GrIS'] = float(in_da.data)*1000
+    return gauge_grd
