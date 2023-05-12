@@ -8,6 +8,7 @@ Author:
 
 
 from functools import cache
+import itertools
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,6 +18,7 @@ import pyvinecopulib as pv
 from scipy import stats
 import seaborn as sns
 import warnings
+from watermark import watermark
 import xarray as xr
 
 
@@ -28,6 +30,14 @@ plt.rcParams['axes.labelweight'] = 'bold'
 plt.rcParams['xtick.labelsize'] = 'large'
 plt.rcParams['ytick.labelsize'] = 'large'
 plt.rcParams['savefig.dpi'] = 300
+
+
+# Watermark, including versions of dependencies
+
+def get_watermark():
+    """Return watermark string, including versions of dependencies."""
+    packages = ('matplotlib,numpy,pandas,pyvinecopulib,scipy,seaborn,xarray')
+    return watermark(conda=True, python=True, packages=packages)
 
 
 # Combined Antarctic ISM ensemble
@@ -784,7 +794,7 @@ def ax_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
 
     Returns
     -------
-    ax : Axes.
+    ax : Axes
         Axes on which data have been plotted.
     """
     # Create axes?
@@ -907,7 +917,7 @@ def ax_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.a
 
     Returns
     -------
-    ax : Axes.
+    ax : Axes
         Axes on which data have been plotted.
     """
     # Create axes?
@@ -1142,7 +1152,7 @@ def ax_sum_vs_gris_fingerprint(projection_source='fusion', scenario='SSP5-8.5', 
 
     Returns
     -------
-    ax : Axes.
+    ax : Axes
         Axes on which data have been plotted.
     """
     # Create axes?
@@ -1199,3 +1209,62 @@ def ax_sum_vs_gris_fingerprint(projection_source='fusion', scenario='SSP5-8.5', 
         ax.text(gris_fp, ax.get_ylim()[0]+0.02, city, color='red', fontsize='large',
                 ha='right', va='bottom', rotation=90)
     return ax
+
+
+# Name and save figures
+
+# Counters for figures
+f_num = itertools.count(1)  # main figures
+e_num = itertools.count(1)  # extended data figures
+s_num = itertools.count(1)  # supplementary figures
+o_num = itertools.count(1)  # other figures
+
+
+def name_save_fig(fig, feso='o', exts=('pdf', 'png'), fig_dir=Path('figs_d23b'), close=False):
+    """
+    Name & save a figure, then increase counter.
+
+    Based on https://github.com/grandey/d22a-mcdc.
+
+    Parameters
+    ----------
+    fig : Figure
+        Figure to save.
+    feso : str
+        Figure type. Either 'f' (main), 'e' (extended data), 's' (supplement), or 'o' (other; default).
+    exts : tuple
+        Extensions to use. Default is ('pdf', 'png').
+    fig_dir : Path
+        Directory in which to save figures. Default is Path('figs_d23b').
+    close : bool
+        Suppress output in notebook? Default is False.
+
+    Returns
+    -------
+    fig_name : str
+        Name of figure.
+    """
+    # Name based on counter, then update counter (in preparation for next figure)
+    if feso == 'f':
+        fig_name = f'fig{next(f_num):02}'
+    elif feso == 'e':
+        fig_name = f'e{next(e_num):02}'
+    elif feso == 's':
+        fig_name = f's{next(s_num):02}'
+    else:
+        fig_name = f'o{next(o_num):02}'
+    # File location based on extension(s)
+    for ext in exts:
+        # Sub-directory
+        sub_dir = fig_dir.joinpath(f'{feso}_{ext}')
+        sub_dir.mkdir(exist_ok=True)
+        # Save
+        fig_path = sub_dir.joinpath(f'{fig_name}.{ext}')
+        fig.savefig(fig_path, bbox_inches='tight')
+        # Print file name and size
+        fig_size = fig_path.stat().st_size / 1024 / 1024  # bytes -> MB
+        print(f'Written {fig_name}.{ext} ({fig_size:.2f} MB)')
+    # Suppress output in notebook?
+    if close:
+        plt.close()
+    return fig_name
