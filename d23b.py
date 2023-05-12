@@ -667,7 +667,6 @@ def fig_illustrate_bivariate_copula_vine(projection_source='fusion', scenario='S
     Returns
     -------
     fig : Figure
-    axs : array of Axes
     """
     # Create folder to hold temporary component plots
     temp_dir = Path('temp')
@@ -761,6 +760,7 @@ def fig_illustrate_bivariate_copula_vine(projection_source='fusion', scenario='S
         ax4.text(x, -0.1, f'{s}\npair copula', ha='center', va='top', fontsize=18, color='g')
         ax4.imshow(plt.imread(temp_dir / 'temp_copula2.png'), extent=[x-0.9, x+0.9, 0, 1.8])
     ax4.set_title('(c) Truncated vine copula', fontsize='x-large')
+    return fig
 
 
 # Figures showing total ice-sheet contribution
