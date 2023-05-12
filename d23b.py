@@ -1157,7 +1157,7 @@ def ax_sum_vs_gris_fingerprint(projection_source='fusion', scenario='SSP5-8.5', 
     """
     # Create axes?
     if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=(6, 5), constrained_layout=True)
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4.7), constrained_layout=True)
     # GRD fingerprints to use
     eais_fp = 1.10
     wais_fp = 1.15
@@ -1206,7 +1206,7 @@ def ax_sum_vs_gris_fingerprint(projection_source='fusion', scenario='SSP5-8.5', 
     for gauge, city in [('REYKJAVIK', 'Reykjavik'), ('DUBLIN', 'Dublin'), ('TANJONG_PAGAR', 'Singapore')]:
         gris_fp = get_gauge_grd(gauge=gauge)['GrIS']
         plt.axvline(gris_fp, color='red', linestyle='--', alpha=0.5)
-        ax.text(gris_fp, ax.get_ylim()[0]+0.02, city, color='red', fontsize='large',
+        ax.text(gris_fp, ax.get_ylim()[0]+0.05, city, color='red', fontsize='large',
                 ha='right', va='bottom', rotation=90)
     return ax
 
