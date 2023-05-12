@@ -936,7 +936,7 @@ def ax_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.a
         else:
             families2 = (family, )*2
             label = family.name.capitalize()
-            label = f'{label}, $\\tau$ = {tau}'
+            label = f'{label}, $\\tau$ = {round(tau, 3)}'
         data_df = pd.DataFrame()  # create DataFrame to hold percentile time series for this copula
         # For each year, calculate percentiles of EAIS+WAIS+GrIS
         for year in years:
