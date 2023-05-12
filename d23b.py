@@ -837,7 +837,7 @@ def ax_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
 
 def fig_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
                      families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
-                     colors_a=('green', ), colors_b=('darkred', 'blue'), ylim=(-0.2, 2.8),
+                     colors_a=('green', ), colors_b=('darkred', 'blue'), ylim=(-0.2, 3.25),
                      n_samples=int(1e5)):
     """
     Plot figure showing median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs Kendall's
@@ -857,7 +857,7 @@ def fig_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
     colors_a and colors_b : tuple
         Colors to use when plotting. Default is ('green', ) and ('darkred', 'blue').
     ylim : tuple
-        Limits for y-axis. Default is (-0.2, 2.8).
+        Limits for y-axis. Default is (-0.2, 3.25).
     n_samples : int
         Number of samples to generate for each family and tau. Default is int(1e5).
 
@@ -867,7 +867,7 @@ def fig_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
     axs : array of Axes
     """
     # Create figure and axes
-    fig, axs = plt.subplots(1, 2, figsize=(12, 5), sharey=True, constrained_layout=True)
+    fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharey=True, constrained_layout=True)
     # (a)
     ax = axs[0]
     _ = ax_total_vs_tau(projection_source=projection_source, scenario=scenario, year=year,
@@ -1028,7 +1028,7 @@ def fig_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.
     axs : array of Axes
     """
     # Create figure and axes
-    fig, axs = plt.subplots(1, 2, figsize=(12, 5), sharey=True, constrained_layout=True)
+    fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharey=True, constrained_layout=True)
     # (a)
     ax = axs[0]
     _ = ax_total_vs_time(projection_source=projection_source, scenario=scenario, years=years,
