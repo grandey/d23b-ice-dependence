@@ -18,7 +18,7 @@ conda env create --file environment.yml
 conda activate d23b-ice-dependence
 ```
 
-The analysis has been performed within this environment on _macOS 13_.
+The analysis has been performed within this environment on _macOS 13_ (arm64).
 
 ### Input data
 The analysis code requires

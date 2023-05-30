@@ -31,13 +31,16 @@ plt.rcParams['xtick.labelsize'] = 'large'
 plt.rcParams['ytick.labelsize'] = 'large'
 plt.rcParams['savefig.dpi'] = 300
 
+# Seaborn style
+sns.set_style('whitegrid')
+
 
 # Watermark, including versions of dependencies
 
 def get_watermark():
     """Return watermark string, including versions of dependencies."""
     packages = ('matplotlib,numpy,pandas,pyvinecopulib,scipy,seaborn,xarray')
-    return watermark(conda=True, python=True, packages=packages)
+    return watermark(machine=True, conda=True, python=True, packages=packages)
 
 
 # Combined Antarctic ISM ensemble
