@@ -153,7 +153,12 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     axs : array of Axes
     """
     # Read combined Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023)
-    p21_l23_df = read_p21_l23_ism_data(ref_year=ref_year, target_year=target_year)
+    p21_l23_df = read_p21_l23_ism_data(ref_year=ref_year, target_year=target_year).copy()
+    # Include tau of each ensemble within Group label
+    for group in p21_l23_df['Group'].unique():
+        group_df = p21_l23_df.loc[p21_l23_df['Group'] == group]
+        tau = stats.kendalltau(group_df['EAIS'], group_df['WAIS'])[0]
+        p21_l23_df = p21_l23_df.replace(group, f'{group} ($\\tau$ = {tau:.3f})')
     # Create Figure and Axes
     fig, axs = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
     # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
