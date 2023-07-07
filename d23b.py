@@ -93,14 +93,14 @@ def read_p21_l23_ism_data(ref_year=2015, target_year=2100):
             ais_dict['Notes'] = '_'.join(in_fn.name.split('_')[-3:-1])
             # Read DataSet
             in_ds = xr.load_dataset(in_fn)
-            # Calculate SLE for target year relative to reference year for WAIS and EAIS
+            # Calculate SLE for target year relative to reference year for WAIS and EAIS; remember sign
             wais_da = in_ds[f'limnsw_region_{1}'] + in_ds[f'limnsw_region_{3}']  # include peninsula in WAIS
             eais_da = in_ds[f'limnsw_region_{2}']
             for region_name, in_da in [('WAIS', wais_da), ('EAIS', eais_da)]:
                 if ref_year == 2015:
-                    ais_dict[region_name] = float(in_da.sel(time=target_year)) * convert_Gt_m
+                    ais_dict[region_name] = -1. * float(in_da.sel(time=target_year)) * convert_Gt_m
                 else:
-                    ais_dict[region_name] = float(in_da.sel(time=target_year) - in_da.sel(time=ref_year)) * convert_Gt_m
+                    ais_dict[region_name] = float(in_da.sel(time=ref_year) - in_da.sel(time=target_year)) * convert_Gt_m
             # Append to DataFrame
             p21_l23_df.loc[len(p21_l23_df)] = ais_dict
 
@@ -124,7 +124,7 @@ def read_p21_l23_ism_data(ref_year=2015, target_year=2100):
                 in_df = pd.read_fwf(in_fn, skiprows=1, index_col='time')
             except ValueError:
                 in_df = pd.read_fwf(in_fn, skiprows=2, index_col='time')
-            # Get SLE for target year relative to reference year for WAIS and EAIS
+            # Get SLE for target year relative to reference year for WAIS and EAIS; remember sign
             for region_name, in_varname in [('WAIS', 'eofw(m)'), ('EAIS', 'eofe(m)')]:
                 ais_dict[region_name] = in_df.loc[ref_year][in_varname] - in_df.loc[target_year][in_varname]
             # Append to DataFrame
