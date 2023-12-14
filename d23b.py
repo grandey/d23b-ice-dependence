@@ -39,15 +39,11 @@ sns.set_style('whitegrid')
 IN_BASE = Path.cwd() / 'data'  # base directory of input data
 
 
-# Watermark, including versions of dependencies
-
 def get_watermark():
     """Return watermark string, including versions of dependencies."""
     packages = ('matplotlib,numpy,pandas,pyvinecopulib,scipy,seaborn,xarray')
     return watermark(machine=True, conda=True, python=True, packages=packages)
 
-
-# Read AR6 samples and get quantile functions for ice-sheet components
 
 @cache
 def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year=2100):
@@ -110,95 +106,92 @@ def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year
     return samples_da
 
 
-# Combined Antarctic ISM ensemble
-
 @cache
-def read_p21_l23_ism_data(ref_year=2015, target_year=2100):
+def read_ism_ensemble_data(ensemble='P21+L23', ref_year=2015, target_year=2100):
     """
-    Read combined Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023).
+    Read Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023).
 
     This function uses data from https://doi.org/10.5281/zenodo.4498331 and https://doi.org/10.5281/zenodo.7380180.
 
     Parameters
     ----------
+    ensemble : str
+        Ensemble to read. Options are 'P21' (Payne et al.) and 'P21+L23' (P21 and a subset of Li et al., default).
     ref_year : int
-        Reference year. Default is 2015 (which is the start year for Payne et al. data).
+        Reference year. Default is 2015 (which is the start year for the P21 data).
     target_year : int
         Target year for difference. Default is 2100.
 
     Returns
     -------
-    p21_l23_df : pandas DataFrame
-        A DataFrame containing WAIS and EAIS sea-level equivalents (in m), Group (P21_ISMIP6 or L23_MICI), and Notes.
+    ism_df : pandas DataFrame
+        A DataFrame containing WAIS and EAIS sea-level equivalents (in m), Group (P21 or L23), and Notes.
     """
     # DataFrame to hold data
-    p21_l23_df = pd.DataFrame(columns=['WAIS', 'EAIS', 'Group', 'Notes'])
-
+    ism_df = pd.DataFrame(columns=['WAIS', 'EAIS', 'Group', 'Notes'])
     # Read Payne et al. data
-    # Location of data
-    payne_base = Path(f'data/CMIP5_CMIP6_Scalars_Paper')
-    in_dir = payne_base / 'AIS' / 'Ice'
-    # Conversion factor for ice sheet mass above floatation (Gt) to sea-level equivalent (m)
-    convert_Gt_m = 1. / 362.5 / 1e3  # Goelzer et al (2020): 362.5 Gt ~ 1 mm SLE
-    # Experiments of interest (all SSP5-8.5; see https://doi.org/10.5281/zenodo.4498331 README.txt)
-    exp_list = ['B1',  # CNRM-CM6-1 SSP5-8.5, open protocol
-                'B3',  # UKESM1-0-LL SSP5-8.5, open protocol
-                'B4',  # CESM2 SSP5-8.5, open protocol
-                'B5',  # CNRM-ESM2-1 SSP5-8.5, open protocol
-                'B6',  # CNRM-CM6-1 SSP5-8.5, standard protocol
-                'B8',  # UKESM1-0-LL SSP5-8.5, standard protocol
-                'B9',  # CESM2 SSP5-8.5, standard protocol
-                'B10']  # CNRM-ESM2-1 SSP5-8.5, standard protocol
-    # Loop over experiments
-    for exp in exp_list:
-        # Loop over available input files
-        in_fns = sorted(in_dir.glob(f'computed_limnsw_minus_ctrl_proj_AIS_*_exp{exp}.nc'))
-        for in_fn in in_fns:
-            # Create dictionary to hold data for this input file
-            ais_dict = {'Group': f'P21_ISMIP6'}
-            # Get ice-sheet model institute and name
-            ais_dict['Notes'] = '_'.join(in_fn.name.split('_')[-3:-1])
-            # Read DataSet
-            in_ds = xr.load_dataset(in_fn)
-            # Calculate SLE for target year relative to reference year for WAIS and EAIS; remember sign
-            wais_da = in_ds[f'limnsw_region_{1}'] + in_ds[f'limnsw_region_{3}']  # include peninsula in WAIS
-            eais_da = in_ds[f'limnsw_region_{2}']
-            for region_name, in_da in [('WAIS', wais_da), ('EAIS', eais_da)]:
-                if ref_year == 2015:
-                    ais_dict[region_name] = -1. * float(in_da.sel(time=target_year)) * convert_Gt_m
-                else:
-                    ais_dict[region_name] = float(in_da.sel(time=ref_year) - in_da.sel(time=target_year)) * convert_Gt_m
-            # Append to DataFrame
-            p21_l23_df.loc[len(p21_l23_df)] = ais_dict
-
+    if 'P21' in ensemble:
+        # Location of data
+        in_dir = IN_BASE / 'CMIP5_CMIP6_Scalars_Paper' / 'AIS' / 'Ice'
+        # Conversion factor for ice sheet mass above floatation (Gt) to sea-level equivalent (m)
+        convert_Gt_m = 1. / 362.5 / 1e3  # Goelzer et al (2020): 362.5 Gt ~ 1 mm SLE
+        # Experiments of interest (all SSP5-8.5; see https://doi.org/10.5281/zenodo.4498331 README.txt)
+        exp_list = ['B1',  # CNRM-CM6-1 SSP5-8.5, open protocol
+                    'B3',  # UKESM1-0-LL SSP5-8.5, open protocol
+                    'B4',  # CESM2 SSP5-8.5, open protocol
+                    'B5',  # CNRM-ESM2-1 SSP5-8.5, open protocol
+                    'B6',  # CNRM-CM6-1 SSP5-8.5, standard protocol
+                    'B8',  # UKESM1-0-LL SSP5-8.5, standard protocol
+                    'B9',  # CESM2 SSP5-8.5, standard protocol
+                    'B10']  # CNRM-ESM2-1 SSP5-8.5, standard protocol
+        # Loop over experiments
+        for exp in exp_list:
+            # Loop over available input files
+            in_fns = sorted(in_dir.glob(f'computed_limnsw_minus_ctrl_proj_AIS_*_exp{exp}.nc'))
+            for in_fn in in_fns:
+                # Create dictionary to hold data for this input file
+                ais_dict = {'Group': f'P21'}
+                # Get ice-sheet model institute and name
+                ais_dict['Notes'] = f'{exp}_' + '_'.join(in_fn.name.split('_')[-3:-1])
+                # Read DataSet
+                in_ds = xr.load_dataset(in_fn)
+                # Calculate SLE for target year relative to reference year for WAIS and EAIS; remember sign
+                wais_da = in_ds[f'limnsw_region_{1}'] + in_ds[f'limnsw_region_{3}']  # include peninsula in WAIS
+                eais_da = in_ds[f'limnsw_region_{2}']
+                for region_name, in_da in [('WAIS', wais_da), ('EAIS', eais_da)]:
+                    if ref_year == 2015:
+                        ais_dict[region_name] = -1. * float(in_da.sel(time=target_year)) * convert_Gt_m
+                    else:
+                        ais_dict[region_name] = float(in_da.sel(time=ref_year) -
+                                                      in_da.sel(time=target_year)) * convert_Gt_m
+                # Append to DataFrame
+                ism_df.loc[len(ism_df)] = ais_dict
     # Read Li et al. data
-    # Location of data
-    li_base = Path(f'data')
-    # Lists containing experiments of interest and CMIP6 GCMs
-    exp_dict = {'CMIP6_BC_1850-2100': 'L23_MICI'}
-    gcm_list = sorted([g.name for g in (li_base/'CMIP6_BC_1850-2100').glob('*') if g.is_dir()])
-    # Loop over experiments
-    for exp, group in exp_dict.items():
-        # Loop over GCMs
-        for gcm in gcm_list:
-            # Create dictionary to hold data for this input file
-            ais_dict = {'Group': group}
-            # Get ice-sheet model institute and name
-            ais_dict['Notes'] = f'{exp} {gcm}'
-            # Read data
-            in_fn = li_base / exp / gcm / 'fort.22'
-            try:
-                in_df = pd.read_fwf(in_fn, skiprows=1, index_col='time')
-            except ValueError:
-                in_df = pd.read_fwf(in_fn, skiprows=2, index_col='time')
-            # Get SLE for target year relative to reference year for WAIS and EAIS; remember sign
-            for region_name, in_varname in [('WAIS', 'eofw(m)'), ('EAIS', 'eofe(m)')]:
-                ais_dict[region_name] = in_df.loc[ref_year][in_varname] - in_df.loc[target_year][in_varname]
-            # Append to DataFrame
-            p21_l23_df.loc[len(p21_l23_df)] = ais_dict
-
+    if 'L23' in ensemble:
+        # Lists containing experiments of interest and CMIP6 ESMs
+        exp_dict = {'CMIP6_BC_1850-2100': 'L23'}
+        esm_list = ['CNRM-CM6-1', 'UKESM1-0-LL', 'CESM2', 'CNRM-ESM2-1']  # ESMs also used by P21
+        # Loop over experiments
+        for exp, group in exp_dict.items():
+            # Loop over ESMs
+            for esm in esm_list:
+                # Create dictionary to hold data for this input file
+                ais_dict = {'Group': group}
+                # Get ice-sheet model institute and name
+                ais_dict['Notes'] = f'{exp} {esm}'
+                # Read data
+                in_fn = IN_BASE / exp / esm / 'fort.22'
+                try:
+                    in_df = pd.read_fwf(in_fn, skiprows=1, index_col='time')
+                except ValueError:
+                    in_df = pd.read_fwf(in_fn, skiprows=2, index_col='time')
+                # Get SLE for target year relative to reference year for WAIS and EAIS; remember sign
+                for region_name, in_varname in [('WAIS', 'eofw(m)'), ('EAIS', 'eofe(m)')]:
+                    ais_dict[region_name] = in_df.loc[ref_year][in_varname] - in_df.loc[target_year][in_varname]
+                # Append to DataFrame
+                ism_df.loc[len(ism_df)] = ais_dict
     # Return result
-    return p21_l23_df
+    return ism_df
 
 
 def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
@@ -220,7 +213,7 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     axs : array of Axes
     """
     # Read combined Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023)
-    p21_l23_df = read_p21_l23_ism_data(ref_year=ref_year, target_year=target_year).copy()
+    p21_l23_df = read_ism_ensemble_data(ref_year=ref_year, target_year=target_year).copy()
     # Include tau of each ensemble within Group label
     for group in p21_l23_df['Group'].unique():
         group_df = p21_l23_df.loc[p21_l23_df['Group'] == group]
