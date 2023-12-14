@@ -35,12 +35,79 @@ plt.rcParams['savefig.dpi'] = 300
 sns.set_style('whitegrid')
 
 
+# Constants
+IN_BASE = Path.cwd() / 'data'  # base directory of input data
+
+
 # Watermark, including versions of dependencies
 
 def get_watermark():
     """Return watermark string, including versions of dependencies."""
     packages = ('matplotlib,numpy,pandas,pyvinecopulib,scipy,seaborn,xarray')
     return watermark(machine=True, conda=True, python=True, packages=packages)
+
+
+# Read AR6 samples and get quantile functions for ice-sheet components
+
+@cache
+def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year=2100):
+    """
+    Return samples from the AR6 GMSLR projections for a specified workflow, component, scenario, and year.
+
+    Parameters
+    ----------
+    workflow : str
+        AR6 workflow.  Options are 'wf_1e' (default), 'wf_3e', or 'wf_4'.
+    component : str
+        Component of GMSLR. Options are 'EAIS' (East Antarctic Ice Sheet, default),
+        'WAIS' (West Antarctic Ice Sheet), 'GrIS' (Greenland Ice Sheet), and 'GMSLR' (total GMSLR).
+        Note: for ISMIP6, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
+    scenario : str
+        Options are 'ssp126' and 'ssp585' (default).
+    year : int
+        Year. Default is 2100.
+
+    Returns
+    -------
+    samples_da : xarray DataArray
+        DataArray containing different samples of specified component of GMSLR, in metres.
+    """
+    # Identify input file, based on component and workflow
+    if component == 'GMSLR':  # total GMSLR
+        in_dir = IN_BASE / 'ar6' / 'global' / 'full_sample_workflows' / workflow / scenario
+        in_fn = in_dir / 'total-workflow.nc'
+    elif component == 'GrIS':  # Greenland
+        in_dir = IN_BASE / 'ar6' / 'global' / 'full_sample_components'
+        if workflow in ['wf_1e', 'wf_3e']:
+            gris_source = 'ipccar6-ismipemu'
+        elif workflow == 'wf_4':
+            gris_source = 'ipccar6-bamber'
+        in_fn = in_dir / f'icesheets-{gris_source}icesheet-{scenario}_GIS_globalsl.nc'
+    elif component in ['EAIS', 'WAIS', 'PEN']:  # Antarctica
+        in_dir = IN_BASE / 'ar6' / 'global' / 'full_sample_components'
+        if workflow == 'wf_1e':
+            ais_source = 'ipccar6-ismipemu'
+        elif workflow == 'wf_3e':
+            ais_source = 'dp20-'
+        elif workflow == 'wf_4':
+            ais_source = 'ipccar6-bamber'
+        in_fn = in_dir / f'icesheets-{ais_source}icesheet-{scenario}_{component}_globalsl.nc'
+    else:
+        raise ValueError(f'Unrecognised parameter value: component={component}')
+    # Does input file exist?
+    if not in_fn.exists():
+        raise FileNotFoundError(in_fn)
+    # Read data
+    samples_da = xr.open_dataset(in_fn)['sea_level_change'].squeeze().drop_vars('locations').sel(years=year)
+    # Change units from mm to m
+    samples_da = samples_da / 1000.
+    samples_da.attrs['units'] = 'm'
+    # For wf_1e, also include PEN in WAIS (implicitly preserving dependence structure of samples)
+    if workflow == 'wf_1e' and component == 'WAIS':
+        samples_da += read_ar6_samples(workflow=workflow, component='PEN', scenario=scenario, year=year)
+        print(f'read_ar6_samples({workflow}, {component}, {scenario}, {year}): including PEN in WAIS')
+    # Return result (without sorting/ordering)
+    return samples_da
 
 
 # Combined Antarctic ISM ensemble

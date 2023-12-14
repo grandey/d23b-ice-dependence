@@ -3,6 +3,7 @@ data/
 temp_*
 temp.*
 temp/
+scratch.py
 .idea
 .DS_Store
 *.pdf
