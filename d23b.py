@@ -194,6 +194,42 @@ def read_ism_ensemble_data(ensemble='P21+L23', ref_year=2015, target_year=2100):
     return ism_df
 
 
+@cache
+def read_gauge_info(gauge='TANJONG_PAGAR'):
+    """
+    Read name, ID, latitude, and longitude of tide gauge, using location.lst in FACTS
+    (https://doi.org/10.5281/zenodo.7573653).
+
+    Parameters
+    ----------
+    gauge : int or str
+        ID or name of gauge. Default is 'TANJONG_PAGAR' (equivalent to 1746).
+
+    Returns
+    ----------
+    gauge_info : dict
+        Dictionary containing gauge_name, gauge_id, lat, lon.
+    """
+    # Read input file into DataFrame
+    in_dir = Path('data/radical-collaboration-facts-5086a75/input_files')
+    in_fn = in_dir / 'location.lst'
+    in_df = pd.read_csv(in_fn, sep='\t', names=['gauge_name', 'gauge_id', 'lat', 'lon'])
+    # Get data for gauge of interest
+    try:
+        if type(gauge) == str:
+            df = in_df[in_df.gauge_name == gauge]
+        else:
+            df = in_df[in_df.gauge_id == gauge]
+        gauge_info = dict()
+        for c in ['gauge_name', 'gauge_id', 'lat', 'lon']:
+            gauge_info[c] = df[c].values[0]
+    except IndexError:
+        raise ValueError(f"gauge='{gauge}' not found.")
+    return gauge_info
+
+
+# OLDER CODE BELOW - TO REVISE
+
 def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     """
     Plot figure showing combined ISM ensemble WAIS vs EAIS on (a) GMSLR scale and (b) copula scale.
@@ -1115,40 +1151,6 @@ def fig_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.
 
 
 # Influence of GRD fingerprints
-
-@cache
-def get_gauge_info(gauge='TANJONG_PAGAR'):
-    """
-    Get name, ID, latitude, and longitude of tide gauge, using location.lst in FACTS
-    (https://doi.org/10.5281/zenodo.7573653).
-
-    Parameters
-    ----------
-    gauge : int or str
-        ID or name of gauge. Default is 'TANJONG_PAGAR' (equivalent to 1746).
-
-    Returns
-    ----------
-    gauge_info : dict
-        Dictionary containing gauge_name, gauge_id, lat, lon.
-    """
-    # Read input file into DataFrame
-    in_dir = Path('data/radical-collaboration-facts-5086a75/input_files')
-    in_fn = in_dir / 'location.lst'
-    in_df = pd.read_csv(in_fn, sep='\t', names=['gauge_name', 'gauge_id', 'lat', 'lon'])
-    # Get data for gauge of interest
-    try:
-        if type(gauge) == str:
-            df = in_df[in_df.gauge_name == gauge]
-        else:
-            df = in_df[in_df.gauge_id == gauge]
-        gauge_info = dict()
-        for c in ['gauge_name', 'gauge_id', 'lat', 'lon']:
-            gauge_info[c] = df[c].values[0]
-    except IndexError:
-        raise ValueError(f"gauge='{gauge}' not found.")
-    return gauge_info
-
 
 @cache
 def get_gauge_grd(gauge='TANJONG_PAGAR'):
