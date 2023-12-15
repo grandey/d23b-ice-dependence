@@ -381,6 +381,46 @@ def get_fusion_weights():
     return w_da
 
 
+@cache
+def quantify_bivariate_dependence(workflow='wf_1e', components=('EAIS', 'WAIS'), year=2100):
+    """
+    Quantify dependence between two ice-sheet components by fitting a bivariate copula to the SSP5-8.5 data.
+
+    Parameters
+    ----------
+    workflow : str
+        AR6 workflow (e.g. 'wf_1e', default) or ice-sheet model ensemble (e.g. 'P21+L23').
+    components : tuple of str
+        Two ice-sheet components. Default is ('EAIS', 'WAIS').
+    year : int
+        Year. Default is 2100.
+
+    Returns
+    -------
+    bicop : pv.Bicop
+        Fitted bivariate copula (limited to single-parameter families).
+    """
+    # Check that two and only two components have been specified
+    if len(components) != 2:
+        raise ValueError(f'Unrecognized argument value: components={components}. Length should be 2.')
+    # Read samples
+    samples_list = []
+    for component in components:
+        if 'wf' in workflow:  # if workflow, read samples DataArray and extract data
+            samples = read_ar6_samples(workflow=workflow, component=component, scenario='ssp585', year=year).data
+        else:  # if ISM ensemble, read samples DataFrame and extract data
+            samples = read_ism_ensemble_data(ensemble=workflow, ref_year=2015, target_year=year)[component].values
+        samples_list.append(samples)
+    # Fit copula (limited to single-parameter families)
+    x_n2 = np.stack(samples_list, axis=1)
+    u_n2 = pv.to_pseudo_obs(x_n2)
+    controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
+                                               pv.BicopFamily.gaussian, pv.BicopFamily.frank, pv.BicopFamily.clayton])
+    bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
+    # Return result
+    return bicop
+
+
 # OLDER CODE BELOW - TO REVISE
 
 def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
