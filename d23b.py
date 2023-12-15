@@ -268,6 +268,119 @@ def read_gauge_grd(gauge='TANJONG_PAGAR'):
     return gauge_grd
 
 
+@cache
+def get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year=2100, plot=False):
+    """
+    Return quantile function corresponding to a component of GMSLR.
+
+    Parameters
+    ----------
+    workflow : str
+        AR6 workflow (e.g. 'wf_1e', default), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e').
+    component : str
+        Component of GMSLR. Options are 'EAIS' (East Antarctic Ice Sheet, default),
+        'WAIS' (West Antarctic Ice Sheet), 'GrIS' (Greenland Ice Sheet), and 'GMSLR' (total GMSLR).
+        Note: for ISMIP6, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
+    scenario : str
+        Options are 'ssp126' and 'ssp585' (default).
+    year : int
+        Year. Default is 2100.
+    plot : Bool
+        Plot the result? Default is False.
+
+    Returns
+    -------
+    qf_da : xarray DataArray
+        DataArray of sea level quantiles in metres for different probability levels.
+
+    Notes
+    -----
+    1. Following the AR6 projections, the quantile function will contain 20,000 samples.
+    2. This function is based on https://github.com/grandey/d23a-fusion.
+    """
+    # Case 1: single workflow, corresponding to one of the alternative AR6 projections
+    if workflow in ['wf_1e', 'wf_3e', 'wf_4']:
+        # Read AR6 samples
+        samples_da = read_ar6_samples(workflow=workflow, component=component, scenario=scenario, year=year)
+        # Transform samples to quantile function
+        qf_da = samples_da.sortby(samples_da)  # sort
+        qf_da = qf_da.assign_coords(samples=np.linspace(0., 1., len(qf_da)))  # uniformly distributed probabilities
+        qf_da = qf_da.rename({'samples': 'p'})  # rename coordinate to p (probability).
+    # Case 2: lower or upper bound of low-confidence p-box
+    elif workflow in ['lower', 'upper']:
+        wf_list = ['wf_1e', 'wf_3e', 'wf_4']
+        # Get quantile function data for each of these workflows
+        qf_da_list = []  # list to hold quantile functions
+        for wf in wf_list:
+            qf_da_list.append(get_component_qf(workflow=wf, component=component, scenario=scenario, year=year))
+        concat_da = xr.concat(qf_da_list, 'wf')  # concatenate the quantile functions along new dimension
+        # Find lower or upper bound
+        if workflow == 'lower':
+            qf_da = concat_da.min(dim='wf')
+        else:
+            qf_da = concat_da.max(dim='wf')
+    # Case 3: outer bound of p-box
+    elif workflow == 'outer':
+        # Get data for lower and upper bounds
+        lower_da = get_component_qf(workflow='lower', component=component, scenario=scenario, year=year)
+        upper_da = get_component_qf(workflow='upper', component=component, scenario=scenario, year=year)
+        # Derive outer bound; note, although median is undefined, the qf with 20,000 samples does not contain p=0.5
+        qf_da = xr.concat([lower_da.sel(p=slice(0, 0.5)),  # lower bound below median
+                           upper_da.sel(p=slice(0.5000001, 1))],  # upper bound above median
+                          dim='p')
+    # Case 4: fusion distribution
+    elif 'fusion' in workflow:
+        # Get data for preferred workflow and outer bound of p-box
+        wf = f'wf_{workflow.split("_")[-1]}'
+        print(wf)
+        pref_da = get_component_qf(workflow=wf, component=component, scenario=scenario, year=year)
+        outer_da = get_component_qf(workflow='outer', component=component, scenario=scenario, year=year)
+        # Triangular weighting function, with weights depending on probability p
+        w_da = get_fusion_weights()
+        # Derive fusion distribution; rely on automatic broadcasting/alignment
+        qf_da = w_da * pref_da + (1 - w_da) * outer_da
+        # Correct median (which is currently nan due to nan in outer_da)
+        med_idx = len(qf_da) // 2  # index corresponding to median
+        qf_da[med_idx] = pref_da[med_idx]  # median follows preferred workflow
+    else:
+        raise ValueError(f'Unrecognised parameter value: workflow={workflow}')
+    # Plot?
+    if plot:
+        if 'wf' in workflow:
+            linestyle = ':'
+        elif 'fusion' in workflow:
+            linestyle = '-'
+        else:
+            linestyle = '--'
+        qf_da.plot(y='p', label=workflow, alpha=0.5, linestyle=linestyle)
+    # Return result
+    return qf_da
+
+
+@cache
+def get_fusion_weights():
+    """
+    Return triangular weighting function for fusion.
+
+    Returns
+    -------
+    w_da : xarray DataArray
+        DataArray of weights for preferred workflow, with weights depending on probability
+
+    Notes
+    -----
+    This function follows https://github.com/grandey/d23a-fusion.
+    """
+    # Get a quantile function corresponding to a projection of total RSLC, using default parameters
+    w_da = get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year=2100
+                            ).copy()  # use as template for w_da, with data to be updated
+    # Update data to triangular weighting function, with weights depending on probability
+    w_da.data = 1 - np.abs(w_da.p - 0.5) * 2
+    # Rename
+    w_da = w_da.rename('weights')
+    return w_da
+
+
 # OLDER CODE BELOW - TO REVISE
 
 def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
