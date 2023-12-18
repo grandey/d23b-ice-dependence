@@ -497,8 +497,8 @@ def sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year
 
     Returns
     -------
-    x_n3 : np.array
-        An array of shape (n_samples, 3), containing the samples from the joint distribution.
+    trivariate_df : pd.DataFrame
+        DataFrame containing array of shape (n_samples, 3), containing the samples from the joint distribution.
 
     Notes
     -----
@@ -516,11 +516,13 @@ def sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year
     u_n3 = sample_dvine_copula(families=families, rotations=rotations, taus=taus, n_samples=n_samples)
     # Transform marginals of copula
     x_n3 = np.transpose(np.asarray([np.quantile(marg_n3[:, i], u_n3[:, i]) for i in range(3)]))
+    # Convert to DataFrame
+    trivariate_df = pd.DataFrame(x_n3, columns=components)
     # Plot?
     if plot:
-        sns.pairplot(pd.DataFrame(x_n3, columns=components), kind='hist')
+        sns.pairplot(trivariate_df, kind='hist')
         plt.show()
-    return x_n3
+    return trivariate_df
 
 
 # OLDER CODE BELOW - TO REVISE
