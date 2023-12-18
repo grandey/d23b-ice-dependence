@@ -421,6 +421,57 @@ def quantify_bivariate_dependence(workflow='wf_1e', components=('EAIS', 'WAIS'),
     return bicop
 
 
+@cache
+def sample_dvine_copula(families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussian), rotations=(0, 0), taus=(0.5, 0.5),
+                       n_samples=20000, plot=False):
+    """
+    Sample truncated D-vine copula with given families, rotations, Kendall's tau values, and number of samples.
+
+    Parameters
+    ----------
+    families : tuple of pv.BicopFamily
+        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.gaussian).
+    rotations : tuple of int
+        Pair copula rotations. Ignored for Independence, Gaussian, and Frank copulas. Default is (0, 0).
+    taus : tuple of float
+        Pair copula Kendall's tau values. Default is (0.5, 0.5).
+    n_samples : int
+        Number of samples to generate. Default is 20000.
+    plot : bool
+        Plot the simulated data? Default is False.
+
+    Returns
+    -------
+    u_nm : np.array
+        An array of the simulated data, with shape (n_samples, len(families)+1).
+    """
+    # Check that tau values are all floats
+    for tau in taus:
+        if type(tau) not in [float, np.float64, int]:
+            raise ValueError(f'tau={tau} is not a float.')
+    # Derive parameters and create bivariate pair copulas
+    bicops = []  # list to hold pair copulas
+    for family, rotation, tau in zip(families, rotations, taus):
+        parameters = pv.Bicop(family=family).tau_to_parameters(tau)
+        if family in (pv.BicopFamily.indep, pv.BicopFamily.gaussian, pv.BicopFamily.frank):  # ignore rotation
+            bicop = pv.Bicop(family=family, parameters=parameters)
+        else:
+            bicop = pv.Bicop(family=family, rotation=rotation, parameters=parameters)
+        bicops.append(bicop)
+    # Specify truncated D-vine structure
+    struc = pv.DVineStructure(np.arange(len(families)+1)+1, trunc_lvl=1)
+    # Create vine copula
+    cop = pv.Vinecop(struc, [bicops, ])
+    # Simulate data
+    u_nm = cop.simulate(n=n_samples, seeds=[1, 2, 3, 4, 5])
+    # Plot?
+    if plot:
+        sns.pairplot(pd.DataFrame(u_nm, columns=[f'u{n+1}' for n in range(len(families)+1)]), kind='hist')
+        plt.suptitle(f'{cop.str()}', y=1.05)
+        plt.show()
+    return u_nm
+
+
 # OLDER CODE BELOW - TO REVISE
 
 def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
@@ -753,57 +804,6 @@ def sample_bivariate_copula(family=pv.BicopFamily.gaussian, rotation=0, tau=0.5,
         plt.suptitle(f'{cop.str()}', y=1.01)
         plt.show()
     return u_n2
-
-
-@cache
-def sample_dvine_copula(families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussian),
-                        rotations=(0, 0), taus=(0.5, 0.5), n_samples=int(1e5), plot=False):
-    """
-    Sample truncated D-vine copula with given families, rotations, Kendall's tau values, and number of samples.
-
-    Parameters
-    ----------
-    families : tuple of pv.BicopFamily
-        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.gaussian).
-    rotations : tuple of int
-        Pair copula rotations. Ignored for Independence, Gaussian and Frank copulas. Default is (0, 0).
-    taus : tuple of float
-        Pair copula Kendall's tau values. Default is (0.5, 0.5).
-    n_samples : int
-        Number of samples to generate. Default is int(1e5).
-    plot : bool
-        Plot the simulated data? Default is False.
-
-    Returns
-    -------
-    u_nm : np.array
-        An array of the simulated data, with shape (n_samples, len(families)+1).
-    """
-    # Check that tau values are all floats
-    for tau in taus:
-        if type(tau) not in [float, np.float64, int]:
-            raise ValueError(f'tau={tau} is not a float.')
-    # Derive parameters and create bivariate/pair copulas
-    bicops = []  # list to hold pair copulas
-    for family, rotation, tau in zip(families, rotations, taus):
-        parameters = pv.Bicop(family=family).tau_to_parameters(tau)
-        if family in (pv.BicopFamily.indep, pv.BicopFamily.gaussian, pv.BicopFamily.frank):  # ignore rotation
-            bicop = pv.Bicop(family=family, parameters=parameters)
-        else:
-            bicop = pv.Bicop(family=family, rotation=rotation, parameters=parameters)
-        bicops.append(bicop)
-    # Specify truncated D-vine structure
-    struc = pv.DVineStructure(np.arange(len(families)+1)+1, trunc_lvl=1)
-    # Create vine copula
-    cop = pv.Vinecop(struc, [bicops, ])
-    # Simulate data
-    u_nm = cop.simulate(n=n_samples, seeds=[1, 2, 3, 4, 5])
-    # Plot?
-    if plot:
-        sns.pairplot(pd.DataFrame(u_nm, columns=[f'u{n+1}' for n in range(len(families)+1)]), kind='hist')
-        plt.suptitle(f'{cop.str()}', y=1.05)
-        plt.show()
-    return u_nm
 
 
 @cache
