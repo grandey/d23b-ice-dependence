@@ -270,6 +270,28 @@ def read_gauge_grd(gauge='TANJONG_PAGAR'):
 
 
 @cache
+def get_grd_df(gauges=('REYKJAVIK', 'DUBLIN', 'TANJONG_PAGAR')):
+    """
+    Return DataFrame of GRD fingerprints for the specified gauge locations.
+
+    Parameters
+    ----------
+    gauges : tuple
+        Gauge locations. Default is ['REYKJAVIK', 'DUBLIN', 'TANJONG_PAGAR'].
+
+    Returns
+    -------
+    grd_df : pd.DataFrame
+        DataFrame containing GRD fingerprints.
+    """
+    grd_df = pd.DataFrame(columns=COMPONENTS)
+    for gauge in gauges:
+        gauge_grd = read_gauge_grd(gauge=gauge)
+        grd_df.loc[gauge] = gauge_grd
+    return grd_df
+
+
+@cache
 def get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year=2100, plot=False):
     """
     Return quantile function corresponding to a component of GMSLR.
