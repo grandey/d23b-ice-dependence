@@ -472,6 +472,58 @@ def sample_dvine_copula(families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussi
     return u_nm
 
 
+@cache
+def sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year=2100,
+                                   families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussian),
+                                   rotations=(0, 0), taus=(0.5, 0.5), plot=False):
+    """
+    Sample EAIS-WAIS-GrIS joint distribution.
+
+    Parameters
+    ----------
+    workflow : str
+        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default).
+    scenario : str
+        Scenario. Options are 'ssp126' and 'ssp585' (default).
+    year : int
+        Year. Default is 2100.
+    families : tuple of pv.BicopFamily
+        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.gaussian).
+    rotations : tuple of int
+        Pair copula rotations. Ignored for Independence, Gaussian, and Frank copulas. Default is (0, 0).
+    taus : tuple of float
+        Pair copula Kendall's tau values. Default is (0.5, 0.5).
+    plot : bool
+        Plot the joint distribution? Default is False.
+
+    Returns
+    -------
+    x_n3 : np.array
+        An array of shape (n_samples, 3), containing the samples from the joint distribution.
+
+    Notes
+    -----
+    The number of samples (n_samples) is determined by the length of the marginal quantile functions.
+    """
+    # Sample marginals of EAIS, WAIS, GrIS components
+    components = ['EAIS', 'WAIS', 'GrIS']
+    marginals = []  # empty list to hold samples for the marginals
+    for component in components:
+        marginal_n = get_component_qf(workflow=workflow, component=component, scenario=scenario, year=year)
+        marginals.append(marginal_n)
+    marg_n3 = np.stack(marginals, axis=1)  # marginal array with shape (n_samples, 3)
+    n_samples = marg_n3.shape[0]
+    # Sample copula
+    u_n3 = sample_dvine_copula(families=families, rotations=rotations, taus=taus, n_samples=n_samples)
+    # Transform marginals of copula
+    x_n3 = np.transpose(np.asarray([np.quantile(marg_n3[:, i], u_n3[:, i]) for i in range(3)]))
+    # Plot?
+    if plot:
+        sns.pairplot(pd.DataFrame(x_n3, columns=components), kind='hist')
+        plt.show()
+    return x_n3
+
+
 # OLDER CODE BELOW - TO REVISE
 
 def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
@@ -877,58 +929,6 @@ def sample_mixture_dvine_copula(taus=((0, 1), (0, 1)), n_copulas=1000, n_samples
         plt.suptitle('Mixture', y=1.01)
         plt.show()
     return u_nm
-
-
-@cache
-def sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year=2100,
-                                   families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussian),
-                                   rotations=(0, 0), taus=(0.5, 0.5), plot=False):
-    """
-    Sample EAIS-WAIS-GrIS joint distribution.
-
-    Parameters
-    ----------
-    workflow : str
-        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default).
-    scenario : str
-        Scenario. Options are 'ssp126' and 'ssp585' (default).
-    year : int
-        Year. Default is 2100.
-    families : tuple of pv.BicopFamily
-        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.gaussian).
-    rotations : tuple of int
-        Pair copula rotations. Ignored for Independence, Gaussian, and Frank copulas. Default is (0, 0).
-    taus : tuple of float
-        Pair copula Kendall's tau values. Default is (0.5, 0.5).
-    plot : bool
-        Plot the joint distribution? Default is False.
-
-    Returns
-    -------
-    x_n3 : np.array
-        An array of shape (n_samples, 3), containing the samples from the joint distribution.
-
-    Notes
-    -----
-    The number of samples (n_samples) is determined by the length of the marginal quantile functions.
-    """
-    # Sample marginals of EAIS, WAIS, GrIS components
-    components = ['EAIS', 'WAIS', 'GrIS']
-    marginals = []  # empty list to hold samples for the marginals
-    for component in components:
-        marginal_n = get_component_qf(workflow=workflow, component=component, scenario=scenario, year=year)
-        marginals.append(marginal_n)
-    marg_n3 = np.stack(marginals, axis=1)  # marginal array with shape (n_samples, 3)
-    n_samples = marg_n3.shape[0]
-    # Sample copula
-    u_n3 = sample_dvine_copula(families=families, rotations=rotations, taus=taus, n_samples=n_samples)
-    # Transform marginals of copula
-    x_n3 = np.transpose(np.asarray([np.quantile(marg_n3[:, i], u_n3[:, i]) for i in range(3)]))
-    # Plot?
-    if plot:
-        sns.pairplot(pd.DataFrame(x_n3, columns=components), kind='hist')
-        plt.show()
-    return x_n3
 
 
 # Figure illustrating bivariate distribution, bivariate copula, and truncated vine copula
