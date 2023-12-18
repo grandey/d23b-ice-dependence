@@ -640,8 +640,6 @@ def fig_ice_sheet_marginals(projection_source='fusion', scenario='SSP5-8.5', yea
     return fig, axs
 
 
-# Sample copulas and joint distributions
-
 @cache
 def sample_bivariate_copula(family=pv.BicopFamily.gaussian, rotation=0, tau=0.5, n_samples=int(1e5), plot=False):
     """
@@ -682,79 +680,6 @@ def sample_bivariate_copula(family=pv.BicopFamily.gaussian, rotation=0, tau=0.5,
         plt.suptitle(f'{cop.str()}', y=1.01)
         plt.show()
     return u_n2
-
-
-@cache
-def sample_mixture_dvine_copula(taus=((0, 1), (0, 1)), n_copulas=1000, n_samples=int(1e5), plot=False):
-    """
-    Sample a mixture of truncated D-vine copulas across 1-parameter families and Kendall's tau.
-
-    Parameters
-    ----------
-    taus : tuple containing floats and/or tuples
-        Pair copula Kendall's tau values. If float, tau is deterministic. If tuple of length 2, tau ~ U(a, b).
-        If of length 4, tau ~ TN(μ, σ, clip_a, clip_b). Default is ((0, 1), (0, 1)).
-    n_copulas : int
-        Number of copulas to sample. Default is 1000.
-    n_samples : int
-        Number of samples to generate. Must be multiple of n_copulas. Default is int(1e5).
-    plot : bool
-        Plot the simulated data? Default is False.
-
-    Returns
-    -------
-    u_nm : np.array
-        An array of the simulated data, with shape (n_samples, len(taus)+1).
-    """
-    # Is n_samples a multiple of n_copulas?
-    if n_samples % n_copulas != 0:
-        raise ValueError(f'n_samples={n_samples} is not a multiple of n_copulas={n_copulas}.')
-    # Initialize random number generator
-    rng = np.random.default_rng(12345)
-    # Sample tau; c represents index corresponding to n_copulas
-    tau_c_list = []  # list to hold arrays of tau values
-    for tau in taus:  # sample each pair copula independently
-        if type(tau) in [float, np.float64, int]:
-            tau_c = np.full(n_copulas, tau)
-        elif type(tau) == tuple and len(tau) == 2:  # U(a, b)
-            tau_c = rng.uniform(low=tau[0], high=tau[1], size=n_copulas)
-        elif type(tau) == tuple and len(tau) == 4:  # TN(μ, σ, clip_a, clip_b)
-            loc, scale, clip_a, clip_b = tau
-            a = (clip_a - loc) / scale  # scipy.stats doc: [a, b] defined wrt standard normal
-            b = (clip_b - loc) / scale
-            tau_c = stats.truncnorm.rvs(a=a, b=b, loc=loc, scale=scale, size=n_copulas, random_state=rng)
-        else:
-            raise ValueError(f'tau={tau} is not a float or tuple of length 2 or 4.')
-        tau_c_list.append(tau_c)
-    # Sample copula families
-    possible_families = [pv.BicopFamily.joe,
-                         pv.BicopFamily.gumbel,
-                         pv.BicopFamily.gaussian,
-                         pv.BicopFamily.frank,
-                         pv.BicopFamily.clayton]
-    family_c_list = []  # list to hold arrays of families
-    for i in range(len(taus)):  # sample each pair copula independently
-        family_c = rng.choice(possible_families, size=n_copulas)
-        family_c_list.append(family_c)
-    # Simulate data
-    u_nm = np.full((n_samples, len(taus)+1), np.nan)  # array to hold simulated data
-    n_spc = n_samples // n_copulas  # number of samples per copula
-    struc = pv.DVineStructure(np.arange(len(taus)+1)+1, trunc_lvl=1)  # D-vine structure
-    for c in range(n_copulas):
-        bicops = []  # list to hold pair copulas
-        for family, tau in zip([family_c[c] for family_c in family_c_list],
-                               [tau_c[c] for tau_c in tau_c_list]):
-            parameters = pv.Bicop(family=family).tau_to_parameters(tau)
-            bicop = pv.Bicop(family=family, parameters=parameters)
-            bicops.append(bicop)
-        cop = pv.Vinecop(struc, [bicops, ])  # create vine copula
-        u_nm[c*n_spc:(c+1)*n_spc, :] = cop.simulate(n=n_spc, seeds=[c+1, c+2, c+3, c+4, c+5])  # simulate, varying seed
-    # Plot?
-    if plot:
-        sns.pairplot(pd.DataFrame(u_nm, columns=[f'u{n+1}' for n in range(len(taus)+1)]), kind='hist')
-        plt.suptitle('Mixture', y=1.01)
-        plt.show()
-    return u_nm
 
 
 # Figure illustrating bivariate distribution, bivariate copula, and truncated vine copula
