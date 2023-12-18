@@ -582,64 +582,6 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     return bicop, fig, axs
 
 
-@cache
-def sample_sea_level_marginal(projection_source='fusion', component='total', scenario='SSP5-8.5', year=2100,
-                              n_samples=int(1e5), plot=False):
-    """
-    Sample marginal distribution corresponding to sea-level projection (either AR6 ISMIP6, AR6 SEJ, p-box, or fusion).
-
-    This function follows fusion_analysis_d23a.ipynb.
-
-    Parameters
-    ----------
-    projection_source : str
-        Projection source. Options are 'ISMIP6'/'model-based' (emulated ISMIP6),
-        'SEJ'/'expert-based' (Bamber et al. structured expert judgment),
-        'p-box'/'bounding quantile function' (p-box bounding quantile function of ISMIP6 & SEJ),
-        and 'fusion' (fusion of ISMIP6 and bounding quantile function, weighted using triangular function; default).
-    component : str
-        Component of global sea level change. Options are 'GrIS' (Greenland Ice Sheet),
-        'EAIS' (East Antarctic Ice Sheet), 'WAIS' (West Antarctic Ice Sheet), and
-        'total' (total global-mean sea level; default).
-        Note: for ISMIP6, 'PEN' is also included in 'WAIS'.
-    scenario : str
-        Scenario. Options are 'SSP1-2.6' and 'SSP5-8.5' (default).
-    year : int
-        Year. Default is 2100.
-    n_samples : int
-        Number of samples. Default is int(1e5).
-    plot : bool
-        If True, plot diagnostic ECDF and histogram. Default is False.
-
-    Returns
-    -------
-    marginal_n : numpy array
-        A one-dimensional array of randomly drawn samples.
-    """
-    # Read quantile function data
-    qf_da = read_sea_level_qf(projection_source=projection_source, component=component, scenario=scenario, year=year)
-    # Sample uniform distribution
-    rng = np.random.default_rng(12345)
-    uniform_n = rng.uniform(size=n_samples)
-    # Transform these samples to marginal distribution samples by interpolation of quantile function
-    marginal_n = qf_da.interp(quantiles=uniform_n).data
-    # Plot diagnostic plots?
-    if plot:
-        fig, axs = plt.subplots(1, 2, figsize=(8, 4), constrained_layout=True)
-        sns.ecdfplot(marginal_n, label='marginal_n ECDF', ax=axs[0])
-        axs[0].plot(qf_da, qf_da['quantiles'], label='"True" quantile function', linestyle='--')
-        sns.histplot(marginal_n, bins=100, label='marginal_n', ax=axs[1])
-        for ax in axs:
-            ax.legend()
-            try:
-                ax.set_xlabel(f'{component}, {qf_da.attrs["units"]}')
-            except KeyError:
-                ax.set_xlabel(component)
-        plt.suptitle(f'{projection_source}, {component}, {scenario}, {year}, {n_samples}')
-        plt.show()
-    return marginal_n
-
-
 def fig_ice_sheet_marginals(projection_source='fusion', scenario='SSP5-8.5', year=2100,
                             components=('EAIS', 'WAIS', 'GrIS'), n_samples=int(1e5)):
     """
