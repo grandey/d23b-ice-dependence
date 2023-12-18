@@ -37,6 +37,7 @@ sns.set_style('whitegrid')
 
 # Constants
 IN_BASE = Path.cwd() / 'data'  # base directory of input data
+COMPONENTS = ['EAIS', 'WAIS', 'GrIS']  # ice-sheet components of sea level, ordered according to vine copula
 
 
 def get_watermark():
@@ -505,7 +506,7 @@ def sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year
     The number of samples (n_samples) is determined by the length of the marginal quantile functions.
     """
     # Sample marginals of EAIS, WAIS, GrIS components
-    components = ['EAIS', 'WAIS', 'GrIS']
+    components = COMPONENTS
     marginals = []  # empty list to hold samples for the marginals
     for component in components:
         marginal_n = get_component_qf(workflow=workflow, component=component, scenario=scenario, year=year)
