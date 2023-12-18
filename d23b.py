@@ -332,7 +332,6 @@ def get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year
     elif 'fusion' in workflow:
         # Get data for preferred workflow and outer bound of p-box
         wf = f'wf_{workflow.split("_")[-1]}'
-        print(wf)
         pref_da = get_component_qf(workflow=wf, component=component, scenario=scenario, year=year)
         outer_da = get_component_qf(workflow='outer', component=component, scenario=scenario, year=year)
         # Triangular weighting function, with weights depending on probability p
