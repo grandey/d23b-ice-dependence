@@ -548,6 +548,54 @@ def sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year
     return trivariate_df
 
 
+def fig_component_marginals(workflow='fusion_1e', scenario='ssp585', year=2100):
+    """
+    Plot figure showing marginals for the ice-sheet components.
+
+    Parameters
+    ----------
+    workflow : str
+        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default).
+    scenario : str
+        Scenario. Options are 'ssp126' and 'ssp585' (default).
+    year : int
+        Year. Default is 2100.
+
+    Returns
+    -------
+    fig : Figure
+    axs : array of Axes
+    """
+    # Create Figure and Axes
+    n_axs = len(COMPONENTS)  # number of subplots = number of components
+    fig, axs = plt.subplots(n_axs, 1, figsize=(5, 2.1*n_axs), sharex=True, sharey=True, tight_layout=True)
+    # Loop over components and Axes
+    for i, (component, ax) in enumerate(zip(COMPONENTS, axs)):
+        # Get marginal quantile function containing marginal samples
+        qf_da = get_component_qf(workflow=workflow, component=component, scenario=scenario, year=year)
+        # Plot KDE
+        sns.kdeplot(qf_da, bw_adjust=0.3, color='b', fill=True, cut=0,  # limit to data limits
+                    ax=ax)
+        # Plot 5th, 50th, and 95th percentiles
+        y_pos = 12.3  # position of percentile whiskers is tuned for the default parameters
+        ax.plot([qf_da.quantile(p) for p in (0.05, 0.95)], [y_pos, y_pos], color='g', marker='|')
+        ax.plot([qf_da.quantile(0.5), ], [y_pos, ], color='g', marker='x')
+        if i == (n_axs-1):  # label percentiles in final subplot
+            for p in [0.05, 0.5, 0.95]:
+                ax.text(qf_da.quantile(p), y_pos-0.4, f'{int(p*100)}th', ha='center', va='top', color='g', rotation=90)
+        # Skewness and kurtosis
+        ax.text(1.15, 6.5,  # position tuned for the default parameters
+                f"Skewness = {stats.skew(qf_da):.1f}\n"
+                f"Fisher's kurtosis = {stats.kurtosis(qf_da, fisher=True):0.2f}",
+                ha='right', va='center', fontsize='medium', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
+        # Title etc
+        ax.set_title(f'({chr(97+i)}) {component}')
+    # x-axis label and limits
+    axs[-1].set_xlabel(f'Contribution to GMSLR (2005–{year}), m')
+    axs[-1].set_xlim([-0.2, 1.2])
+    return fig, axs
+
+
 # OLDER CODE BELOW - TO REVISE
 
 def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
@@ -603,54 +651,6 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
     ax.text(0.75, 0.06, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.3f}',
             fontsize='large', ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
     return bicop, fig, axs
-
-
-def fig_component_marginals(workflow='fusion_1e', scenario='ssp585', year=2100):
-    """
-    Plot figure showing marginals for the ice-sheet components.
-
-    Parameters
-    ----------
-    workflow : str
-        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default).
-    scenario : str
-        Scenario. Options are 'ssp126' and 'ssp585' (default).
-    year : int
-        Year. Default is 2100.
-
-    Returns
-    -------
-    fig : Figure
-    axs : array of Axes
-    """
-    # Create Figure and Axes
-    n_axs = len(COMPONENTS)  # number of subplots = number of components
-    fig, axs = plt.subplots(n_axs, 1, figsize=(5, 2.1*n_axs), sharex=True, sharey=True, tight_layout=True)
-    # Loop over components and Axes
-    for i, (component, ax) in enumerate(zip(COMPONENTS, axs)):
-        # Get marginal quantile function containing marginal samples
-        qf_da = get_component_qf(workflow=workflow, component=component, scenario=scenario, year=year)
-        # Plot KDE
-        sns.kdeplot(qf_da, bw_adjust=0.3, color='b', fill=True, cut=0,  # limit to data limits
-                    ax=ax)
-        # Plot 5th, 50th, and 95th percentiles
-        y_pos = 12.3  # position of percentile whiskers is tuned for the default parameters
-        ax.plot([qf_da.quantile(p) for p in (0.05, 0.95)], [y_pos, y_pos], color='g', marker='|')
-        ax.plot([qf_da.quantile(0.5), ], [y_pos, ], color='g', marker='x')
-        if i == (n_axs-1):  # label percentiles in final subplot
-            for p in [0.05, 0.5, 0.95]:
-                ax.text(qf_da.quantile(p), y_pos-0.4, f'{int(p*100)}th', ha='center', va='top', color='g', rotation=90)
-        # Skewness and kurtosis
-        ax.text(1.15, 6.5,  # position tuned for the default parameters
-                f"Skewness = {stats.skew(qf_da):.1f}\n"
-                f"Fisher's kurtosis = {stats.kurtosis(qf_da, fisher=True):0.2f}",
-                ha='right', va='center', fontsize='medium', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
-        # Title etc
-        ax.set_title(f'({chr(97+i)}) {component}')
-    # x-axis label and limits
-    axs[-1].set_xlabel(f'Contribution to GMSLR (2005–{year}), m')
-    axs[-1].set_xlim([-0.2, 1.2])
-    return fig, axs
 
 
 @cache
