@@ -531,8 +531,8 @@ def sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year
     components = COMPONENTS
     marginals = []  # empty list to hold samples for the marginals
     for component in components:
-        marginal_n = get_component_qf(workflow=workflow, component=component, scenario=scenario, year=year)
-        marginals.append(marginal_n)
+        qf_da = get_component_qf(workflow=workflow, component=component, scenario=scenario, year=year)
+        marginals.append(qf_da.data)
     marg_n3 = np.stack(marginals, axis=1)  # marginal array with shape (n_samples, 3)
     n_samples = marg_n3.shape[0]
     # Sample copula
