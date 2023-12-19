@@ -596,9 +596,7 @@ def fig_component_marginals(workflow='fusion_1e', scenario='ssp585', year=2100):
     return fig, axs
 
 
-# OLDER CODE BELOW - TO REVISE
-
-def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
+def fig_ism_ensemble(ref_year=2015, target_year=2100):
     """
     Plot figure showing combined ISM ensemble WAIS vs EAIS on (a) GMSLR scale and (b) copula scale.
 
@@ -611,47 +609,47 @@ def fig_p21_l23_ism_data(ref_year=2015, target_year=2100):
 
     Returns
     -------
-    bicop : pv.Bicop
-        Fitted copula.
     fig : Figure
     axs : array of Axes
     """
     # Read combined Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023)
-    p21_l23_df = read_ism_ensemble_data(ref_year=ref_year, target_year=target_year).copy()
-    # Include tau of each ensemble within Group label
-    for group in p21_l23_df['Group'].unique():
-        group_df = p21_l23_df.loc[p21_l23_df['Group'] == group]
-        tau = stats.kendalltau(group_df['EAIS'], group_df['WAIS'])[0]
-        p21_l23_df = p21_l23_df.replace(group, f'{group} ($\\tau$ = {tau:.3f})')
+    ism_df = read_ism_ensemble_data(ensemble='P21+L23', ref_year=ref_year, target_year=target_year).copy()
+    # Include number of samples in label (for legend)
+    for group in ism_df['Group'].unique():
+        group_df = ism_df.loc[ism_df['Group'] == group]
+        n_samples = len(group_df)
+        ism_df = ism_df.replace(group, f'{group} (n = {n_samples})')
     # Create Figure and Axes
     fig, axs = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
     # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
     ax = axs[0]
-    sns.scatterplot(p21_l23_df, x='EAIS', y='WAIS', hue='Group', style='Group', ax=ax)
+    sns.scatterplot(ism_df, x='EAIS', y='WAIS', hue='Group', style='Group', ax=ax)
     ax.legend(loc='lower right', fontsize='large', framealpha=1,
               edgecolor='0.85')  # specify edgecolor consistent with box in (b)
     ax.set_title(f'(a) ISM ensemble WAIS vs EAIS')
-    ax.set_xlabel('EAIS, m')
-    ax.set_ylabel('WAIS, m')
+    ax.set_xlabel('EAIS, m (sea-level equivalent)')
+    ax.set_ylabel('WAIS, m (sea-level equivalent)')
+    ax.set_xlim(-0.15, 0.65)
+    ax.set_xticks(np.arange(-0.1, 0.6, 0.1))
     # (b) Pseudo-copula data on copula scale
     ax = axs[1]
-    x_n2 = np.stack([p21_l23_df['EAIS'], p21_l23_df['WAIS']], axis=1)
+    x_n2 = np.stack([ism_df['EAIS'], ism_df['WAIS']], axis=1)
     u_n2 = pv.to_pseudo_obs(x_n2)
-    u_df = pd.DataFrame({'EAIS': u_n2[:, 0], 'WAIS': u_n2[:, 1], 'Group': p21_l23_df['Group']})
+    u_df = pd.DataFrame({'EAIS': u_n2[:, 0], 'WAIS': u_n2[:, 1], 'Group': ism_df['Group']})
     sns.scatterplot(u_df, x='EAIS', y='WAIS', hue='Group', style='Group', legend=False, ax=ax)
     ax.set_title(f'(b) Pseudo-copula data')
-    ax.set_xlabel('EAIS')
-    ax.set_ylabel('WAIS')
+    ax.set_xlabel('EAIS, unitless')
+    ax.set_ylabel('WAIS, unitless')
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])
     # Fit copula (limited to single-parameter families)
-    controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
-                                               pv.BicopFamily.gaussian, pv.BicopFamily.frank, pv.BicopFamily.clayton])
-    bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
-    ax.text(0.75, 0.06, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.3f}',
+    bicop = quantify_bivariate_dependence(workflow='P21+L23', components=('EAIS', 'WAIS'), year=2100)
+    ax.text(0.75, 0.06, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.2f}',
             fontsize='large', ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
-    return bicop, fig, axs
+    return fig, axs
 
+
+# OLDER CODE BELOW - TO REVISE
 
 @cache
 def sample_bivariate_copula(family=pv.BicopFamily.gaussian, rotation=0, tau=0.5, n_samples=int(1e5), plot=False):
@@ -1250,3 +1248,4 @@ def name_save_fig(fig, feso='o', exts=('pdf', 'png'), fig_dir=Path('figs_d23b'),
     if close:
         plt.close()
     return fig_name
+
