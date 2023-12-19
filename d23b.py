@@ -649,52 +649,6 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     return fig, axs
 
 
-# OLDER CODE BELOW - TO REVISE
-
-@cache
-def sample_bivariate_copula(family=pv.BicopFamily.gaussian, rotation=0, tau=0.5, n_samples=int(1e5), plot=False):
-    """
-    Sample bivariate copula with a given family, rotation, Kendall's tau, and number of samples.
-
-    Parameters
-    ----------
-    family : pv.BicopFamily
-        Bivariate copula family. Default is pv.BicopFamily.gaussian.
-    rotation : int
-        Bivariate copula rotation. Ignored for Independence, Gaussian, and Frank copulas. Default is 0.
-    tau : float
-        Kendall's tau for the copula. Default is 0.5.
-    n_samples : int
-        Number of samples to generate. Default is int(1e5).
-    plot : bool
-        Plot the simulated data? Default is False.
-
-    Returns
-    -------
-    u_n2 : np.array
-        An array of the simulated data, with shape (n_samples, 2).
-    """
-    # Check that tau is a float
-    if type(tau) not in [float, np.float64, int]:
-        raise ValueError(f'tau={tau} is not a float.')
-    # Derive parameters and create bivariate copula
-    parameters = pv.Bicop(family=family).tau_to_parameters(tau)
-    if family in (pv.BicopFamily.indep, pv.BicopFamily.gaussian, pv.BicopFamily.frank):  # ignore rotation
-        cop = pv.Bicop(family=family, parameters=parameters)
-    else:
-        cop = pv.Bicop(family=family, rotation=rotation, parameters=parameters)
-    # Simulate data
-    u_n2 = cop.simulate(n=n_samples, seeds=[1, 2, 3, 4, 5])
-    # Plot?
-    if plot:
-        sns.jointplot(pd.DataFrame(u_n2, columns=['u1', 'u2']), x='u1', y='u2', kind='hex')
-        plt.suptitle(f'{cop.str()}', y=1.01)
-        plt.show()
-    return u_n2
-
-
-# Figure illustrating bivariate distribution, bivariate copula, and truncated vine copula
-
 def fig_illustrate_copula():
     """
     Plot figure illustrating (a) bivariate distribution, (b) bivariate copula, and (c) truncated D-vine copula.
@@ -808,6 +762,8 @@ def fig_illustrate_copula():
     ax4.set_title('(c) Truncated vine copula', fontsize='x-large')
     return fig
 
+
+# OLDER CODE BELOW - TO REVISE
 
 # Figures showing total ice-sheet contribution
 
