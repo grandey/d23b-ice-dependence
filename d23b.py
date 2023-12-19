@@ -720,14 +720,14 @@ def fig_illustrate_copula():
     # 1st component plot: bivariate joint distribution (with marginals)
     sns.set_style('ticks')
     g = sns.jointplot(x_df, x=COMPONENTS[0], y=COMPONENTS[1], kind='kde', cmap='Greens', fill=True,
-                      levels=7, cut=0, marginal_ticks=False, marginal_kws={'bw_adjust': 0.2, 'color': 'b'},
-                      xlim=[-0.2, 0.2], ylim=[-0.2, 0.5], height=3)
+                      levels=7, cut=0, marginal_ticks=False, marginal_kws={'bw_adjust': 0.3, 'color': 'b'},
+                      xlim=[-0.2, 0.3], ylim=[-0.2, 0.5], height=3)
     g.set_axis_labels(xlabel=f'{COMPONENTS[0]}, m', ylabel=f'{COMPONENTS[1]}, m')
     g.savefig(temp_dir / 'temp_joint.png')
     plt.close(g.fig)
     # 2nd component: bivariate copula (with uniform marginals)
     g = sns.jointplot(u_df, x=COMPONENTS[0], y=COMPONENTS[1], kind='kde', cmap='Greens', fill=True, bw_adjust=1.8,
-                      levels=7, cut=0, clip=[0, 1], marginal_ticks=False, marginal_kws={'bw_adjust': 0.2, 'color': 'b'},
+                      levels=7, cut=0, clip=[0, 1], marginal_ticks=False, marginal_kws={'bw_adjust': 0.3, 'color': 'b'},
                       xlim=[0, 1], ylim=[0, 1], height=3)
     g.set_axis_labels(xlabel=f'{COMPONENTS[0]}, unitless', ylabel=f'{COMPONENTS[1]}, unitless')
     g.savefig(temp_dir / 'temp_copula1.png')
@@ -749,9 +749,10 @@ def fig_illustrate_copula():
     # 5th-7th components: marginals
     for component in COMPONENTS:
         fig, ax = plt.subplots(1, 1, figsize=(2, 1), tight_layout=True)
-        sns.kdeplot(x_df, x=component, bw_adjust=0.2, color='b', fill=True, cut=0, ax=ax)
+        sns.kdeplot(x_df, x=component, bw_adjust=0.5, color='b', fill=True, cut=0, ax=ax)
         ax.set_xlabel(None)
         ax.set_ylabel(None)
+        ax.set_xlim([-0.2, 0.6])
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         fig.savefig(temp_dir / f'temp_{component}.png')
@@ -766,7 +767,7 @@ def fig_illustrate_copula():
     ax1.annotate('Marginal\ndensity', xy=(0.6, 0.92), xytext=(0.95, 0.92),
                  va='center', ha='center', xycoords='axes fraction', fontsize='large', color='b',
                  arrowprops=dict(arrowstyle='->', ec='b'))
-    ax1.annotate('Joint\ndensity', xy=(0.5, 0.6), xytext=(0.34, 0.79),
+    ax1.annotate('Joint\ndensity', xy=(0.45, 0.55), xytext=(0.37, 0.75),
                  va='center', ha='center', xycoords='axes fraction', fontsize='large', color='g',
                  arrowprops=dict(arrowstyle='->', ec='g'))
     ax1.set_title('(a) Bivariate distribution', fontsize='x-large')
@@ -786,7 +787,7 @@ def fig_illustrate_copula():
     ax3.annotate('Uniform\nmarginal\ndensity', xy=(0.2, 0.92), xytext=(0, 0.92),
                  va='center', ha='center', xycoords='axes fraction', fontsize='large', color='b',
                  arrowprops=dict(arrowstyle='->', ec='b'))
-    ax3.annotate('Copula\ndensity', xy=(0.45, 0.65), xytext=(0.31, 0.77),
+    ax3.annotate('Copula\ndensity', xy=(0.45, 0.65), xytext=(0.33, 0.75),
                  va='center', ha='center', xycoords='axes fraction', fontsize='large', color='g',
                  arrowprops=dict(arrowstyle='->', ec='g'))
     ax3.set_title('(b) Bivariate copula', fontsize='x-large')
