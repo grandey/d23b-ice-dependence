@@ -821,26 +821,23 @@ def fig_dependence_table(workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), year=2
     return fig, ax
 
 
-# OLDER CODE BELOW - TO REVISE
-
-# Figures showing total ice-sheet contribution
-
-def ax_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
-                families=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
-                rotations=(0, 0),
-                colors=('darkred', 'blue'),
-                n_samples=int(1e5), ax=None):
+def ax_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
+                    families=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
+                    rotations=(0, 0),
+                    colors=('darkred', 'blue'),
+                    n_samples=int(1e5), ax=None):
     """
     Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs Kendall's tau (x-axis).
 
     Parameters
     ----------
-    projection_source : str
-        The projection source for the marginal distributions. Default is 'fusion'.
+    workflow : str
+        AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
+        corresponding to the component marginals.
     scenario : str
-        The scenario for the marginal distributions. Default is 'SSP5-8.5'
+        The scenario for the component marginals. Default is 'ssp585'.
     year : int
-        Year for which to plot data. Default is 2100.
+        Target year for the component marginals. Default is 2100.
     families : tuple
         Pair copula families. Default is (pv.BicopFamily.joe, pv.BicopFamily.clayton).
     rotations : tuple
@@ -860,26 +857,22 @@ def ax_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
     # Create axes?
     if ax is None:
         fig, ax = plt.subplots(1, 1)
-    # For each copula, calculate EAIS+WAIS+GIS for different tau values and plot median & 5th-95th
+    # For each copula, calculate total ice-sheet contribution for different tau values and plot median & 5th-95th
     for family, rotation, color, hatch, linestyle, linewidth in zip(families, rotations, colors,
                                                                     ('//', r'\\'), ('--', '-.'), (3, 2)):
-        if family == 'Mixture':
-            families2 = 'Mixture'  # used when calling sample_trivariate_distribution() below
-            label = 'Mixture'  # label to use in legend
-        else:
-            families2 = (family, )*2
-            label = family.name.capitalize()
+        families2 = (family, )*2
+        label = family.name.capitalize()
         tau_t = np.linspace(0, 1, 51)  # tau values to use
         p50_t = np.full(len(tau_t), np.nan)  # array to hold median at each tau
         p5_t = np.full(len(tau_t), np.nan)  # 5th percentile
         p95_t = np.full(len(tau_t), np.nan)  # 95th percentile
         for t, tau in enumerate(tau_t):  # for each tau, calculate total ice-sheet contribution
-            x_n3 = sample_trivariate_distribution(projection_source=projection_source, scenario=scenario, year=year,
-                                                  families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
-                                                  n_samples=n_samples, plot=False)
-            p50_t[t] = np.percentile(x_n3.sum(axis=1), 50)  # median
-            p5_t[t] = np.percentile(x_n3.sum(axis=1), 5)  # 5th percentile
-            p95_t[t] = np.percentile(x_n3.sum(axis=1), 95)  # 95th percentile
+            trivariate_df = sample_trivariate_distribution(workflow=workflow, scenario=scenario, year=year,
+                                                           families=families2, rotations=(rotation, )*2, taus=(tau, )*2)
+            sum_ser = trivariate_df.sum(axis=1)
+            p50_t[t] = np.percentile(sum_ser, 50)  # median
+            p5_t[t] = np.percentile(sum_ser, 5)  # 5th percentile
+            p95_t[t] = np.percentile(sum_ser, 95)  # 95th percentile
         # Plot data for this family
         ax.fill_between(tau_t, p5_t, p95_t, color=color, alpha=0.2, label=f'{label} (5th–95th)', hatch=hatch)
         ax.plot(tau_t, p50_t, color=color, label=f'{label} (median)', linestyle=linestyle, linewidth=linewidth)
@@ -891,7 +884,7 @@ def ax_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(tau_t))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
-    ax.set_title(f'{projection_source} {scenario} {year}')
+    ax.set_title(f'{workflow} {scenario} {year}')
     return ax
 
 
