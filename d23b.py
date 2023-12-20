@@ -890,22 +890,22 @@ def ax_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
     return ax
 
 
-def fig_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
+def fig_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
                      families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
-                     colors_a=('green', ), colors_b=('darkred', 'blue'), ylim=(-0.2, 3.25),
-                     n_samples=int(1e5)):
+                     colors_a=('green', ), colors_b=('darkred', 'blue'), ylim=(-0.2, 3.25)):
     """
-    Plot figure showing median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs Kendall's
-    tau (x-axis) for (a) Gaussian pair copulas and (b) Joe/Clayton pair copulas (default).
+    Plot figure showing median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs tau (x-axis)
+    for (a) Gaussian pair copulas and (b) Joe & Clayton pair copulas (default).
 
     Parameters
     ----------
-    projection_source : str
-        The projection source for the marginal distributions. Default is 'fusion'.
+    workflow : str
+        AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
+        corresponding to the component marginals.
     scenario : str
-        The scenario for the marginal distributions. Default is 'SSP5-8.5'
+        The scenario for the component marginals. Default is 'ssp585'.
     year : int
-        Year for which to plot data. Default is 2100.
+        Target year for the component marginals. Default is 2100.
     families_a and families_b : tuple
         Pair copula families to use for panels (a) and (b).
         Default is (pv.BicopFamily.gaussian, ) and (pv.BicopFamily.joe, pv.BicopFamily.clayton).
@@ -925,15 +925,13 @@ def fig_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
     fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharey=True, constrained_layout=True)
     # (a)
     ax = axs[0]
-    _ = ax_total_vs_tau(projection_source=projection_source, scenario=scenario, year=year,
-                        families=families_a, colors=colors_a,
-                        n_samples=n_samples, ax=ax)
+    _ = ax_total_vs_tau(workflow=workflow, scenario=scenario, year=year,
+                        families=families_a, colors=colors_a, ax=ax)
     ax.set_title(f'(a) {" and ".join(f.name.capitalize() for f in families_a)} pair copulas')
     # (b)
     ax = axs[1]
-    _ = ax_total_vs_tau(projection_source=projection_source, scenario=scenario, year=year,
-                        families=families_b, colors=colors_b,
-                        n_samples=n_samples, ax=ax)
+    _ = ax_total_vs_tau(workflow=workflow, scenario=scenario, year=year,
+                        families=families_b, colors=colors_b, ax=ax)
     ax.set_title(f'(b) {" and ".join(f.name.capitalize() for f in families_b)} pair copulas')
     ax.set_ylabel(None)
     ax.set_ylim(ylim)
