@@ -38,9 +38,12 @@ sns.set_style('whitegrid')
 # Constants
 IN_BASE = Path.cwd() / 'data'  # base directory of input data
 COMPONENTS = ['EAIS', 'WAIS', 'GrIS']  # ice-sheet components of sea level, ordered according to vine copula
-WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e', 'wf_3e': 'Workflow 3e', 'wf_4': 'Workflow 4',
-                   'P21+L23': 'P21+L23\nensemble'}
-WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',
+WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e',  # names of 'workflows' (AR6 workflows, ISM ensemble, fusion)
+                   'wf_3e': 'Workflow 3e',
+                   'wf_4': 'Workflow 4',
+                   'P21+L23': 'P21+L23\nensemble',
+                   'fusion_1e': 'Fusion'}
+WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',  # notes used by fig_dependence_table()
                   'wf_3e': 'Antarctic ISM\nensemble\n(DeConto et al., 2021)',
                   'P21+L23': 'Antarctic ISM\nensemble\n(Payne et al., 2021;\nLi et al., 2023)',
                   'wf_4': 'Structured\nexpert judgment\n(Bamber et al., 2019)'}
@@ -510,11 +513,12 @@ def sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year
     Parameters
     ----------
     workflow : str
-        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default).
+        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
+        corresponding to the component marginals.
     scenario : str
-        Scenario. Options are 'ssp126' and 'ssp585' (default).
+        Scenario to use for the component marginals. Options are 'ssp126' and 'ssp585' (default).
     year : int
-        Year. Default is 2100.
+        Year to use for the component marginals. Default is 2100.
     families : tuple of pv.BicopFamily
         Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.gaussian).
     rotations : tuple of int
@@ -822,10 +826,8 @@ def fig_dependence_table(workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), year=2
 
 
 def ax_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
-                    families=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
-                    rotations=(0, 0),
-                    colors=('darkred', 'blue'),
-                    n_samples=int(1e5), ax=None):
+                    families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotations=(0, 0), colors=('darkred', 'blue'),
+                    ax=None):
     """
     Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs Kendall's tau (x-axis).
 
