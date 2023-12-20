@@ -38,6 +38,12 @@ sns.set_style('whitegrid')
 # Constants
 IN_BASE = Path.cwd() / 'data'  # base directory of input data
 COMPONENTS = ['EAIS', 'WAIS', 'GrIS']  # ice-sheet components of sea level, ordered according to vine copula
+WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e', 'wf_3e': 'Workflow 3e', 'wf_4': 'Workflow 4',
+                   'P21+L23': 'P21+L23\nensemble'}
+WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',
+                  'wf_3e': 'Antarctic ISM\nensemble\n(DeConto et al., 2021)',
+                  'P21+L23': 'Antarctic ISM\nensemble\n(Payne et al., 2021;\nLi et al., 2023)',
+                  'wf_4': 'Structured\nexpert judgment\n(Bamber et al., 2019)'}
 
 
 def get_watermark():
@@ -763,15 +769,67 @@ def fig_illustrate_copula():
     return fig
 
 
+def fig_dependence_table(workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), year=2100):
+    """
+    Plot heatmap table of bivariate copulas for AR6 workflows and ISM ensemble.
+
+    Parameters
+    ----------
+    workflows : tuple of str
+        AR6 workflows (e.g. 'wf_1e') and/or ice-sheet model ensemble (e.g. 'P21+L23').
+        Default is ('wf_1e', 'wf_3e', 'P21+L23', 'wf_4').
+    year : int
+        Year, corresponding to projection target year. Default is 2100.
+
+    Returns
+    -------
+    fig : Figure
+    axs : array of Axes
+    """
+    # Component combinations correspond to columns
+    columns = ['Notes',]
+    columns += [f'{COMPONENTS[i]}—{COMPONENTS[i+1]}' for i in range(2)]
+    columns.append(f'{COMPONENTS[0]}—{COMPONENTS[2]}')
+    # DataFrames to hold bivariate copula annotation string and Kendall's tau
+    annot_df = pd.DataFrame(columns=columns, dtype=object)
+    tau_df = pd.DataFrame(columns=columns, dtype=float)
+    # Add data to DataFrames
+    for workflow in workflows:  # loop over workflows
+        for column in columns[1:]:  # loop over component combinations (ignoring Notes column)
+            try:  # quantify dependence
+                bicop = quantify_bivariate_dependence(workflow, components=tuple(column.split('—')), year=year)
+                annot_df.loc[workflow, column] = f'{bicop.str().split(",")[0]},\n$\\tau$ = {bicop.tau:.2f}'
+                tau_df.loc[workflow, column] = bicop.tau
+            except KeyError:
+                annot_df.loc[workflow, column] = 'N/A'
+                tau_df.loc[workflow, column] = 0.  # set as zero not missing, so that annotations are not masked
+        annot_df.loc[workflow, 'Notes'] = WORKFLOW_NOTES[workflow]  # include workflow notes in annotation DataFrame
+        tau_df.loc[workflow, 'Notes'] = 0.
+    # Create Figure and Axes
+    fig, ax = plt.subplots(1, 1, figsize=(10, 1*len(workflows)), tight_layout=True)
+    # Plot heatmap
+    sns.heatmap(tau_df, cmap='seismic', vmin=-1., vmax=1., annot=annot_df, fmt='', annot_kws={'weight': 'bold'},
+                ax=ax)
+    # Customise plot
+    ax.tick_params(top=False, bottom=False, left=False, right=False, labeltop=True, labelbottom=False, rotation=0)
+    ax.set_yticklabels([WORKFLOW_LABELS[workflow] for workflow in workflows])
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontweight('bold')
+    cbar = ax.collections[0].colorbar
+    cbar.set_ticks([-1., 0., 1.])
+    cbar.set_label('Kendall\'s $\\tau$')
+    return fig, ax
+
+
 # OLDER CODE BELOW - TO REVISE
 
 # Figures showing total ice-sheet contribution
 
 def ax_total_vs_tau(projection_source='fusion', scenario='SSP5-8.5', year=2100,
-                    families=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
-                    rotations=(0, 0),
-                    colors=('darkred', 'blue'),
-                    n_samples=int(1e5), ax=None):
+                families=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
+                rotations=(0, 0),
+                colors=('darkred', 'blue'),
+                n_samples=int(1e5), ax=None):
     """
     Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs Kendall's tau (x-axis).
 
@@ -1196,4 +1254,3 @@ def name_save_fig(fig, feso='o', exts=('pdf', 'png'), fig_dir=Path('figs_d23b'),
     if close:
         plt.close()
     return fig_name
-
