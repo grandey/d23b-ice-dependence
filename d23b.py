@@ -9,6 +9,7 @@ Author:
 
 from functools import cache
 import itertools
+import math
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
@@ -41,7 +42,7 @@ COMPONENTS = ['EAIS', 'WAIS', 'GrIS']  # ice-sheet components of sea level, orde
 WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e',  # names of "workflows", inc. ISM ensemble, fusion, idealized dependence
                    'wf_3e': 'Workflow 3e',
                    'wf_4': 'Workflow 4',
-                   'P21+L23': 'P21+L23\nensemble',
+                   'P21+L23': 'P21+L23 ensemble',
                    'fusion_1e': 'Fusion',  # fusion used only for component marginals
                    '0': 'Independence',  # idealized indepedence used only when coupling with copulas
                    '1': 'Perfect dependence',  # idealized perfect dependence used only when coupling with copulas
@@ -962,6 +963,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     cop_workflows : tuple of str
         AR6 workflow (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), independence ('0'),
         or perfect dependence between two components (e.g. '10') corresponding to the vine copula to be used.
+        Default is ('wf_3e', '0').
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
         corresponding to the component marginals.
@@ -1067,40 +1069,33 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     return ax
 
 
-def fig_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.arange(2020, 2101, 10),
-                      families_a=(pv.BicopFamily.gaussian, pv.BicopFamily.indep), taus_a=(1.0, 0.0),
-                      colors_a=('darkgreen', 'darkorange'), title_a='Perfect dependence & independence',
-                      families_b=(pv.BicopFamily.joe, pv.BicopFamily.clayton), taus_b=(0.5, 0.5),
-                      colors_b=('darkred', 'blue'), title_b='Two copula families',
-                      thresh_for_timing_diff=(1.4, 0.2), ylim=(-0.2, 2.3), n_samples=int(1e5)):
+def fig_total_vs_time(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), ref_workflow='0',
+                      marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
+                      thresh_for_timing_diff=(1.4, 0.2), ylim=(-0.2, 2.3)):
     """
     Plot figure showing median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs time (x-axis)
-    for different copulas (in two panels, a and b).
+    for different copulas (in multiple panels).
 
     Parameters
     ----------
-    projection_source : str
-        The projection source for the marginal distributions. Default is 'fusion'.
-    scenario : str
-        The scenario for the marginal distributions. Default is 'SSP5-8.5'
-    years : np.array
-        Years for which to plot data. Default is np.arange(2020, 2101, 10).
-    families_a and families_b : tuple
-        Pair copula families to use for panels (a) and (b).
-        Default is (pv.BicopFamily.gaussian, pv.BicopFamily.indep) and (pv.BicopFamily.joe, pv.BicopFamily.clayton).
-    taus_a and taus_b: tuple
-        Pair copula Kendall's tau values. Default is (1.0, 0.0) and (0.5, 0.5).
-    colors_a and colors_b : tuple
-        Colors to use when plotting. Default is ('darkgreen', 'darkorange') and ('darkred', 'blue').
-    title_a and title_b : str
-        Titles for panels (a) and (b).
+    cop_workflows : tuple of str
+        AR6 workflows (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), independence ('0'),
+        or perfect dependence between two components (e.g. '10') corresponding to the vine copula to be used.
+        Note, these will be plotted in separate panels. Default is ('wf_1e', 'wf_3e', 'P21+L23', 'wf_4').
+    ref_workflow : str
+        Workflow corresponding to the vine copula to be used as the reference in all panels. Default is '0'.
+    marg_workflow : str
+        AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
+        corresponding to the component marginals.
+    marg_scenario : str
+        The scenario for the component marginals. Default is 'ssp585'.
+    marg_years : np.array
+        Target years for the component marginals. Default is np.arange(2020, 2101, 10).
     thresh_for_timing_diff : tuple, True, or None
         Thresholds to use if demonstrating the difference in timing at the 95th percentile and median.
         If True, select automatically. Default is (1.4, 0.2).
     ylim : tuple
         Limits for y-axis. Default is (-0.2, 2.3).
-    n_samples : int
-        Number of samples to generate for each copula. Default is int(1e5).
 
     Returns
     -------
@@ -1108,21 +1103,27 @@ def fig_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.
     axs : array of Axes
     """
     # Create figure and axes
-    fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharey=True, constrained_layout=True)
-    # (a)
-    ax = axs[0]
-    _ = ax_total_vs_time(projection_source=projection_source, scenario=scenario, years=years,
-                         families=families_a, rotations=(0, )*2, taus=taus_a, colors=colors_a,
-                         thresh_for_timing_diff=thresh_for_timing_diff, n_samples=n_samples, ax=ax)
-    ax.set_title(f'(a) {title_a}')
-    # (b)
-    ax = axs[1]
-    _ = ax_total_vs_time(projection_source=projection_source, scenario=scenario, years=years,
-                         families=families_b, rotations=(0, )*2, taus=taus_b, colors=colors_b,
-                         thresh_for_timing_diff=thresh_for_timing_diff, n_samples=n_samples, ax=ax)
-    ax.set_title(f'(b) {title_b}')
-    ax.set_ylabel(None)
-    ax.set_ylim(ylim)
+    if len(cop_workflows) == 1:
+        ncols = 1
+    else:
+        ncols = 2
+    nrows = math.ceil(len(cop_workflows) / 2)
+    fig, axs = plt.subplots(nrows, ncols, figsize=(5*ncols, 4*nrows), sharey=True, sharex=True, constrained_layout=True)
+    # Flatten axs
+    try:
+        axs_flat = axs.flatten()
+    except AttributeError:  # if only one panel
+        axs_flat = [axs, ]
+    # Plot panels
+    for i, (cop_workflow, ax) in enumerate(zip(cop_workflows, axs_flat)):
+        _ = ax_total_vs_time(cop_workflows=(cop_workflow, ref_workflow),
+                             marg_workflow=marg_workflow, marg_scenario=marg_scenario, marg_years=marg_years,
+                             thresh_for_timing_diff=thresh_for_timing_diff, ax=ax)
+        if len(cop_workflows) == 1:
+            ax.set_title(f'{WORKFLOW_LABELS[cop_workflow]} & {WORKFLOW_LABELS[ref_workflow]}')
+        else:
+            ax.set_title(f'({chr(97+i)}) {WORKFLOW_LABELS[cop_workflow]}')
+        ax.set_ylim(ylim)
     return fig, axs
 
 
