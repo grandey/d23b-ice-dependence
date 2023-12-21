@@ -38,15 +38,26 @@ sns.set_style('whitegrid')
 # Constants
 IN_BASE = Path.cwd() / 'data'  # base directory of input data
 COMPONENTS = ['EAIS', 'WAIS', 'GrIS']  # ice-sheet components of sea level, ordered according to vine copula
-WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e',  # names of 'workflows' (AR6 workflows, ISM ensemble, fusion)
+WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e',  # names of "workflows", inc. ISM ensemble, fusion, idealized dependence
                    'wf_3e': 'Workflow 3e',
                    'wf_4': 'Workflow 4',
                    'P21+L23': 'P21+L23\nensemble',
-                   'fusion_1e': 'Fusion'}
+                   'fusion_1e': 'Fusion',  # fusion used only for component marginals
+                   '0': 'Independence',  # idealized indepedence used only when coupling with copulas
+                   '1': 'Perfect dependence'  # idealized perfect dependence used only when coupling with copulas
+                   }
 WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',  # notes used by fig_dependence_table()
                   'wf_3e': 'Antarctic ISM\nensemble\n(DeConto et al., 2021)',
                   'P21+L23': 'Antarctic ISM\nensemble\n(Payne et al., 2021;\nLi et al., 2023)',
-                  'wf_4': 'Structured\nexpert judgment\n(Bamber et al., 2019)'}
+                  'wf_4': 'Structured\nexpert judgment\n(Bamber et al., 2019)'
+                  }
+WORKFLOW_COLORS = {'wf_1e': 'darkgreen',  # colors used by ax_total_vs_time()
+                   'wf_3e': 'darkred',
+                   'wf_4': 'deeppink',
+                   'P21+L23': 'red',
+                   '0': 'lightskyblue',
+                   '1': 'brown'
+                   }
 
 
 def get_watermark():
@@ -846,8 +857,6 @@ def ax_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
         Pair copula rotations. Default is (0, 0).
     colors : tuple
         Colors to use when plotting. Default is ('darkred', 'blue').
-    n_samples : int
-        Number of samples to generate for each family and tau. Default is int(1e5).
     ax : Axes.
         Axes on which to plot. If None, new Axes are created. Default is None.
 
@@ -938,33 +947,27 @@ def fig_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
     return fig, axs
 
 
-def ax_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.arange(2020, 2101, 10),
-                     families=(pv.BicopFamily.gaussian, pv.BicopFamily.indep), rotations=(0, 0), taus=(1.0, 0.0),
-                     colors=('darkgreen', 'darkorange'), thresh_for_timing_diff=True, n_samples=int(1e5), ax=None):
+def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
+                     marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
+                     thresh_for_timing_diff=(1.4, 0.2), ax=None):
     """
     Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs time (x-axis).
 
     Parameters
     ----------
-    projection_source : str
-        The projection source for the marginal distributions. Default is 'fusion'.
-    scenario : str
-        The scenario for the marginal distributions. Default is 'SSP5-8.5'
-    years : np.array
-        Years for which to plot data. Default is np.arange(2020, 2101, 10).
-    families : tuple
-        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.indep).
-    rotations : tuple
-        Pair copula rotations. Default is (0, 0).
-    taus: tuple
-        Pair copula Kendall's tau values. Default is (1.0, 0.0).
-    colors : tuple
-        Colors to use when plotting. Default is ('darkgreen', 'darkorange').
+    cop_workflows : tuple of str
+        AR6 workflow (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), or independence ('0'),
+        corresponding to the vine copula used to couple the marginals.
+    marg_workflow : str
+        AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
+        corresponding to the component marginals.
+    marg_scenario : str
+        The scenario for the component marginals. Default is 'ssp585'.
+    marg_years : np.array
+        Target years for the component marginals. Default is np.arange(2020, 2101, 10).
     thresh_for_timing_diff : tuple, True, or None
         Thresholds to use if demonstrating the difference in timing at the 95th percentile and median.
-        If True, select automatically. Default is True.
-    n_samples : int
-        Number of samples to generate for each copula. Default is int(1e5).
+        If True, select automatically. Default is (1.4, 0.2).
     ax : Axes.
         Axes on which to plot. If None, new Axes are created. Default is None.
 
@@ -978,27 +981,40 @@ def ax_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.a
         fig, ax = plt.subplots(1, 1)
     # List to hold DataFrames created below
     data_dfs = []
-    # For each copula, calculate EAIS+WAIS+GrIS for different years and plot median & 5th-95th percentile range
-    for family, rotation, tau, color, hatch, linestyle, linewidth in zip(families, rotations, taus, colors,
-                                                                         ('//', r'\\'), ('--', '-.'), (3, 2)):
-        if family == 'Mixture':
-            families2 = 'Mixture'  # used when calling sample_trivariate_distribution() below
-            label = 'Mixture'  # label to use in legend
-            if len(tau) == 2:
-                label = f'{label}, $\\tau$ ~ U({tau[0]},{tau[1]})'
+    # For each copula, calculate total ice-sheet contribution for different years and plot
+    for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', r'\\'), ('--', '-.'), (3, 2)):
+        # Specify pair copula families, rotations, and tau
+        if cop_workflow == '0':
+            families = (pv.BicopFamily.indep, )*2
+            rotations = (0, )*2
+            taus = (0., )*2
+        elif cop_workflow == '1':
+            families = (pv.BicopFamily.gaussian, )*2
+            rotations = (0, )*2
+            taus = (1., )*2
         else:
-            families2 = (family, )*2
-            label = family.name.capitalize()
-            label = f'{label}, $\\tau$ = {round(tau, 3)}'
-        data_df = pd.DataFrame()  # create DataFrame to hold percentile time series for this copula
-        # For each year, calculate percentiles of EAIS+WAIS+GrIS
-        for year in years:
-            x_n3 = sample_trivariate_distribution(projection_source=projection_source, scenario=scenario, year=year,
-                                                  families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
-                                                  n_samples=n_samples, plot=False)
+            bicop1 = quantify_bivariate_dependence(cop_workflow, components=tuple(COMPONENTS[:2]), year=2100)
+            try:
+                bicop2 = quantify_bivariate_dependence(cop_workflow, components=tuple(COMPONENTS[1:]), year=2100)
+            except KeyError:
+                print(f'No {COMPONENTS[1]}-{COMPONENTS[1]} dependence found for {cop_workflow}; using independence')
+                bicop2 = pv.Bicop(family=pv.BicopFamily.indep)
+                bicop2 = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=(1,))
+            families = (bicop1.family, bicop2.family)
+            rotations = (bicop1.rotation, bicop2.rotation)
+            taus = (bicop1.tau, bicop2.tau)
+        # Create DataFrame to hold percentile time series for this copula
+        data_df = pd.DataFrame()
+        # For each year, calculate percentiles of total ice-sheet contribution
+        for year in marg_years:
+            trivariate_df = sample_trivariate_distribution(workflow=marg_workflow, scenario=marg_scenario, year=year,
+                                                           families=families, rotations=rotations, taus=taus)
+            sum_ser = trivariate_df.sum(axis=1)
             for perc in (5, 50, 95):
-                data_df.loc[year, perc] = np.percentile(x_n3.sum(axis=1), perc)
+                data_df.loc[year, perc] = np.percentile(sum_ser, perc)
         # Plot
+        label = WORKFLOW_LABELS[cop_workflow]
+        color = WORKFLOW_COLORS[cop_workflow]
         ax.fill_between(data_df.index, data_df[5], data_df[95], label=f'{label} (5th–95th)',  # plot
                         color=color, alpha=0.2, hatch=hatch)
         sns.lineplot(data_df[50], color=color, label=f'{label} (median)',
@@ -1015,7 +1031,7 @@ def ax_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.a
             # Find year at which percentile is closest to threshold for first two copulas
             year_eq_threshs = []  # list to hold years closest to threshold
             for data_df in data_dfs[0:2]:
-                interp_years = np.arange(years[0], years[-1]+1, 1)  # interpolate years
+                interp_years = np.arange(marg_years[0], marg_years[-1]+1, 1)  # interpolate years
                 interp_perc = np.interp(interp_years, data_df.index, data_df[perc])  # interpolate data at percentile
                 idx = np.abs(interp_perc - thresh).argmin()  # index closest to threshold
                 year_eq_threshs.append(interp_years[idx])  # year closest to threshold
@@ -1030,7 +1046,7 @@ def ax_total_vs_time(projection_source='fusion', scenario='SSP5-8.5', years=np.a
                 # Plot line showing threshold
                 ax.axhline(thresh, alpha=0.3, color='k', linestyle=':')
     # Customize plot
-    ax.set_xlim(years[0], years[-1])
+    ax.set_xlim(marg_years[0], marg_years[-1])
     ax.set_xlabel('Year')
     ax.set_ylabel(f'Total ice-sheet contribution, m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
