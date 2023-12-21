@@ -531,27 +531,28 @@ def sample_dvine_copula(families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussi
 
 
 @cache
-def sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year=2100,
-                                   families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussian),
-                                   rotations=(0, 0), taus=(0.5, 0.5), plot=False):
+def sample_trivariate_distribution(families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussian),
+                                   rotations=(0, 0), taus=(0.5, 0.5),
+                                   marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
+                                   plot=False):
     """
     Sample EAIS-WAIS-GrIS joint distribution.
 
     Parameters
     ----------
-    workflow : str
-        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
-        corresponding to the component marginals.
-    scenario : str
-        Scenario to use for the component marginals. Options are 'ssp126' and 'ssp585' (default).
-    year : int
-        Year to use for the component marginals. Default is 2100.
     families : tuple of pv.BicopFamily
         Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.gaussian).
     rotations : tuple of int
         Pair copula rotations. Ignored for Independence, Gaussian, and Frank copulas. Default is (0, 0).
     taus : tuple of float
         Pair copula Kendall's tau values. Default is (0.5, 0.5).
+    marg_workflow : str
+        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
+        corresponding to the component marginals.
+    marg_scenario : str
+        Scenario to use for the component marginals. Options are 'ssp126' and 'ssp585' (default).
+    marg_year : int
+        Year to use for the component marginals. Default is 2100.
     plot : bool
         Plot the joint distribution? Default is False.
 
@@ -568,7 +569,7 @@ def sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year
     components = COMPONENTS
     marginals = []  # empty list to hold samples for the marginals
     for component in components:
-        qf_da = get_component_qf(workflow=workflow, component=component, scenario=scenario, year=year)
+        qf_da = get_component_qf(workflow=marg_workflow, component=component, scenario=marg_scenario, year=marg_year)
         marginals.append(qf_da.data)
     marg_n3 = np.stack(marginals, axis=1)  # marginal array with shape (n_samples, 3)
     n_samples = marg_n3.shape[0]
@@ -680,7 +681,7 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])
     # Fit copula (limited to single-parameter families)
-    bicop = quantify_bivariate_dependence(workflow='P21+L23', components=('EAIS', 'WAIS'), year=2100)
+    bicop = quantify_bivariate_dependence(cop_workflow='P21+L23', components=('EAIS', 'WAIS'))
     ax.text(0.75, 0.06, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.2f}',
             fontsize='large', ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
     return fig, axs
@@ -698,16 +699,16 @@ def fig_illustrate_copula():
     temp_dir = Path('temp')
     temp_dir.mkdir(exist_ok=True)
     # Bivariate copulas to use
-    bicop1 = quantify_bivariate_dependence(workflow='wf_4', components=tuple(COMPONENTS[:2]), year=2100)
-    bicop2 = quantify_bivariate_dependence(workflow='wf_4', components=tuple(COMPONENTS[1:]), year=2100)
+    bicop1 = quantify_bivariate_dependence(cop_workflow='wf_4', components=tuple(COMPONENTS[:2]))
+    bicop2 = quantify_bivariate_dependence(cop_workflow='wf_4', components=tuple(COMPONENTS[1:]))
     # Sample corresponding vine copula and trivariate distribution
     families = (bicop1.family, bicop2.family)
     rotations = (bicop1.rotation, bicop2.rotation)
     taus = (bicop1.tau, bicop2.tau)
     u_nm = sample_dvine_copula(families=families, rotations=rotations, taus=taus, n_samples=20000)
     u_df = pd.DataFrame(u_nm, columns=COMPONENTS)
-    x_df = sample_trivariate_distribution(workflow='fusion_1e', scenario='ssp585', year=2100,
-                                          families=families, rotations=rotations, taus=taus)
+    x_df = sample_trivariate_distribution(families=families, rotations=rotations, taus=taus,
+                                          marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100)
     # 1st component plot: bivariate joint distribution (with marginals)
     sns.set_style('ticks')
     g = sns.jointplot(x_df, x=COMPONENTS[0], y=COMPONENTS[1], kind='kde', cmap='Greens', fill=True,
@@ -895,8 +896,9 @@ def ax_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
         p5_t = np.full(len(tau_t), np.nan)  # 5th percentile
         p95_t = np.full(len(tau_t), np.nan)  # 95th percentile
         for t, tau in enumerate(tau_t):  # for each tau, calculate total ice-sheet contribution
-            trivariate_df = sample_trivariate_distribution(workflow=workflow, scenario=scenario, year=year,
-                                                           families=families2, rotations=(rotation, )*2, taus=(tau, )*2)
+            trivariate_df = sample_trivariate_distribution(families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
+                                                           marg_workflow=workflow, marg_scenario=scenario,
+                                                           marg_year=year)
             sum_ser = trivariate_df.sum(axis=1)
             p50_t[t] = np.percentile(sum_ser, 50)  # median
             p5_t[t] = np.percentile(sum_ser, 5)  # 5th percentile
@@ -1002,9 +1004,9 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     # For each copula, calculate total ice-sheet contribution for different years and plot
     for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', r'\\'), ('--', '-.'), (3, 2)):
         # Specify pair copula families, rotations, and tau
-        bicop1 = quantify_bivariate_dependence(cop_workflow, components=tuple(COMPONENTS[:2]))
+        bicop1 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[:2]))
         try:
-            bicop2 = quantify_bivariate_dependence(cop_workflow, components=tuple(COMPONENTS[1:]))
+            bicop2 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[1:]))
         except KeyError:
             print(f'No {COMPONENTS[1]}-{COMPONENTS[1]} dependence found for {cop_workflow}; using independence')
             bicop2 = pv.Bicop(family=pv.BicopFamily.indep)
@@ -1015,8 +1017,9 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
         data_df = pd.DataFrame()
         # For each year, calculate percentiles of total ice-sheet contribution
         for year in marg_years:
-            trivariate_df = sample_trivariate_distribution(workflow=marg_workflow, scenario=marg_scenario, year=year,
-                                                           families=families, rotations=rotations, taus=taus)
+            trivariate_df = sample_trivariate_distribution(families=families, rotations=rotations, taus=taus,
+                                                           marg_workflow=marg_workflow, marg_scenario=marg_scenario,
+                                                           marg_year=year)
             sum_ser = trivariate_df.sum(axis=1)
             for perc in (5, 50, 95):
                 data_df.loc[year, perc] = np.percentile(sum_ser, perc)
