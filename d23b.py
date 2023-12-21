@@ -52,7 +52,7 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e',  # names of "workflows", inc. ISM ens
 WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',  # notes used by fig_dependence_table()
                   'wf_3e': 'Antarctic ISM\nensemble\n(DeConto et al., 2021)',
                   'P21+L23': 'Antarctic ISM\nensemble\n(Payne et al., 2021;\nLi et al., 2023)',
-                  'wf_4': 'Structured\nexpert judgment\n(Bamber et al., 2019)'
+                  'wf_4': 'Structured\nexpert judgment\n(Bamber et al., 2019)',
                   }
 WORKFLOW_COLORS = {'wf_1e': 'darkgreen',  # colors used by ax_total_vs_time()
                    'wf_3e': 'darkred',
@@ -429,18 +429,17 @@ def get_fusion_weights():
 
 
 @cache
-def quantify_bivariate_dependence(workflow='wf_1e', components=('EAIS', 'WAIS'), year=2100):
+def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAIS')):
     """
-    Quantify dependence between two ice-sheet components by fitting a bivariate copula to the SSP5-8.5 data.
+    Quantify dependence between two ice-sheet components by fitting a bivariate copula to the year-2100 SSP5-8.5 data.
 
     Parameters
     ----------
-    workflow : str
-        AR6 workflow (e.g. 'wf_1e', default) or ice-sheet model ensemble (e.g. 'P21+L23').
+    cop_workflow : str
+        AR6 workflow (e.g. 'wf_1e', default), ice-sheet model ensemble (e.g. 'P21+L23'), or idealized dependence
+        (e.g. '1'), for which to fit/specify the bivariate copula.
     components : tuple of str
         Two ice-sheet components. Default is ('EAIS', 'WAIS').
-    year : int
-        Year. Default is 2100.
 
     Returns
     -------
@@ -450,20 +449,32 @@ def quantify_bivariate_dependence(workflow='wf_1e', components=('EAIS', 'WAIS'),
     # Check that two and only two components have been specified
     if len(components) != 2:
         raise ValueError(f'Unrecognized argument value: components={components}. Length should be 2.')
-    # Read samples
-    samples_list = []
-    for component in components:
-        if 'wf' in workflow:  # if workflow, read samples DataArray and extract data
-            samples = read_ar6_samples(workflow=workflow, component=component, scenario='ssp585', year=year).data
-        else:  # if ISM ensemble, read samples DataFrame and extract data
-            samples = read_ism_ensemble_data(ensemble=workflow, ref_year=2015, target_year=year)[component].values
-        samples_list.append(samples)
-    # Fit copula (limited to single-parameter families)
-    x_n2 = np.stack(samples_list, axis=1)
-    u_n2 = pv.to_pseudo_obs(x_n2)
-    controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
-                                               pv.BicopFamily.gaussian, pv.BicopFamily.frank, pv.BicopFamily.clayton])
-    bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
+    # Case 1: idealised dependence by specifying the copula
+    if cop_workflow in ('0', '1', '10', '01'):
+        if cop_workflow == '1':  # perfect dependence
+            bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])
+        elif cop_workflow == '10' and components == tuple(COMPONENTS[:2]):  # perfect dep. between 1st & 2nd components
+            bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])
+        elif cop_workflow == '01' and components == tuple(COMPONENTS[1:]):  # perfect dep. between 2nd & 3rd components
+            bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])
+        else:  # independence
+            bicop = pv.Bicop(family=pv.BicopFamily.indep)
+    # Case 2: quantify dependence by fitting copula to samples
+    else:
+        # Read samples
+        samples_list = []
+        for component in components:
+            if 'wf' in cop_workflow:  # if workflow, read samples DataArray and extract data
+                samples = read_ar6_samples(workflow=cop_workflow, component=component, scenario='ssp585', year=2100).data
+            else:  # if ISM ensemble, read samples DataFrame and extract data
+                samples = read_ism_ensemble_data(ensemble=cop_workflow, ref_year=2015, target_year=2100)[component].values
+            samples_list.append(samples)
+        # Fit copula (limited to single-parameter families)
+        x_n2 = np.stack(samples_list, axis=1)
+        u_n2 = pv.to_pseudo_obs(x_n2)
+        controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
+                                                   pv.BicopFamily.gaussian, pv.BicopFamily.frank, pv.BicopFamily.clayton])
+        bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
     # Return result
     return bicop
 
@@ -789,17 +800,15 @@ def fig_illustrate_copula():
     return fig
 
 
-def fig_dependence_table(workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), year=2100):
+def fig_dependence_table(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4')):
     """
     Plot heatmap table of bivariate copulas for AR6 workflows and ISM ensemble.
 
     Parameters
     ----------
-    workflows : tuple of str
-        AR6 workflows (e.g. 'wf_1e') and/or ice-sheet model ensemble (e.g. 'P21+L23').
+    cop_workflows : tuple of str
+        AR6 workflows (e.g. 'wf_1e'), ice-sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
         Default is ('wf_1e', 'wf_3e', 'P21+L23', 'wf_4').
-    year : int
-        Year, corresponding to projection target year. Default is 2100.
 
     Returns
     -------
@@ -814,25 +823,28 @@ def fig_dependence_table(workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), year=2
     annot_df = pd.DataFrame(columns=columns, dtype=object)
     tau_df = pd.DataFrame(columns=columns, dtype=float)
     # Add data to DataFrames
-    for workflow in workflows:  # loop over workflows
+    for workflow in cop_workflows:  # loop over workflows
         for column in columns[1:]:  # loop over component combinations (ignoring Notes column)
             try:  # quantify dependence
-                bicop = quantify_bivariate_dependence(workflow, components=tuple(column.split('—')), year=year)
+                bicop = quantify_bivariate_dependence(cop_workflow=workflow, components=tuple(column.split('—')))
                 annot_df.loc[workflow, column] = f'{bicop.str().split(",")[0]},\n$\\tau$ = {bicop.tau:.2f}'
                 tau_df.loc[workflow, column] = bicop.tau
             except KeyError:
                 annot_df.loc[workflow, column] = 'N/A'
                 tau_df.loc[workflow, column] = 0.  # set as zero not missing, so that annotations are not masked
-        annot_df.loc[workflow, 'Notes'] = WORKFLOW_NOTES[workflow]  # include workflow notes in annotation DataFrame
+        try:
+            annot_df.loc[workflow, 'Notes'] = WORKFLOW_NOTES[workflow]  # include workflow notes in annotation DataFrame
+        except KeyError:
+            annot_df.loc[workflow, 'Notes'] = ''
         tau_df.loc[workflow, 'Notes'] = 0.
     # Create Figure and Axes
-    fig, ax = plt.subplots(1, 1, figsize=(10, 1*len(workflows)), tight_layout=True)
+    fig, ax = plt.subplots(1, 1, figsize=(10, 1*len(cop_workflows)), tight_layout=True)
     # Plot heatmap
     sns.heatmap(tau_df, cmap='seismic', vmin=-1., vmax=1., annot=annot_df, fmt='', annot_kws={'weight': 'bold'},
                 ax=ax)
     # Customise plot
     ax.tick_params(top=False, bottom=False, left=False, right=False, labeltop=True, labelbottom=False, rotation=0)
-    ax.set_yticklabels([WORKFLOW_LABELS[workflow] for workflow in workflows])
+    ax.set_yticklabels([WORKFLOW_LABELS[workflow] for workflow in cop_workflows])
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontweight('bold')
     cbar = ax.collections[0].colorbar
