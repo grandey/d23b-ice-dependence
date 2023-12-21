@@ -44,8 +44,10 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e',  # names of "workflows", inc. ISM ens
                    'P21+L23': 'P21+L23\nensemble',
                    'fusion_1e': 'Fusion',  # fusion used only for component marginals
                    '0': 'Independence',  # idealized indepedence used only when coupling with copulas
-                   '1': 'Perfect dependence'  # idealized perfect dependence used only when coupling with copulas
-                   }
+                   '1': 'Perfect dependence',  # idealized perfect dependence used only when coupling with copulas
+                   '10': f'{COMPONENTS[0]}—{COMPONENTS[1]} perfect dependence',  # perfect dependence & independence
+                   '01': f'{COMPONENTS[1]}—{COMPONENTS[2]} perfect dependence',  # independence & perfect dependence
+}
 WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',  # notes used by fig_dependence_table()
                   'wf_3e': 'Antarctic ISM\nensemble\n(DeConto et al., 2021)',
                   'P21+L23': 'Antarctic ISM\nensemble\n(Payne et al., 2021;\nLi et al., 2023)',
@@ -56,7 +58,9 @@ WORKFLOW_COLORS = {'wf_1e': 'darkgreen',  # colors used by ax_total_vs_time()
                    'wf_4': 'deeppink',
                    'P21+L23': 'red',
                    '0': 'lightskyblue',
-                   '1': 'brown'
+                   '1': 'brown',
+                   '10': 'grey',
+                   '01': 'grey',
                    }
 
 
@@ -956,8 +960,8 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     Parameters
     ----------
     cop_workflows : tuple of str
-        AR6 workflow (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), or independence ('0'),
-        corresponding to the vine copula used to couple the marginals.
+        AR6 workflow (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), independence ('0'),
+        or perfect dependence between two components (e.g. '10') corresponding to the vine copula to be used.
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
         corresponding to the component marginals.
@@ -992,6 +996,14 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
             families = (pv.BicopFamily.gaussian, )*2
             rotations = (0, )*2
             taus = (1., )*2
+        elif cop_workflow == '10':
+            families = (pv.BicopFamily.gaussian, pv.BicopFamily.indep)
+            rotations = (0, )*2
+            taus = (1., 0.)
+        elif cop_workflow == '01':
+            families = (pv.BicopFamily.indep, pv.BicopFamily.gaussian)
+            rotations = (0, )*2
+            taus = (0., 1.)
         else:
             bicop1 = quantify_bivariate_dependence(cop_workflow, components=tuple(COMPONENTS[:2]), year=2100)
             try:
@@ -999,7 +1011,6 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
             except KeyError:
                 print(f'No {COMPONENTS[1]}-{COMPONENTS[1]} dependence found for {cop_workflow}; using independence')
                 bicop2 = pv.Bicop(family=pv.BicopFamily.indep)
-                bicop2 = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=(1,))
             families = (bicop1.family, bicop2.family)
             rotations = (bicop1.rotation, bicop2.rotation)
             taus = (bicop1.tau, bicop2.tau)
