@@ -1002,32 +1002,15 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     # For each copula, calculate total ice-sheet contribution for different years and plot
     for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', r'\\'), ('--', '-.'), (3, 2)):
         # Specify pair copula families, rotations, and tau
-        if cop_workflow == '0':
-            families = (pv.BicopFamily.indep, )*2
-            rotations = (0, )*2
-            taus = (0., )*2
-        elif cop_workflow == '1':
-            families = (pv.BicopFamily.gaussian, )*2
-            rotations = (0, )*2
-            taus = (1., )*2
-        elif cop_workflow == '10':
-            families = (pv.BicopFamily.gaussian, pv.BicopFamily.indep)
-            rotations = (0, )*2
-            taus = (1., 0.)
-        elif cop_workflow == '01':
-            families = (pv.BicopFamily.indep, pv.BicopFamily.gaussian)
-            rotations = (0, )*2
-            taus = (0., 1.)
-        else:
-            bicop1 = quantify_bivariate_dependence(cop_workflow, components=tuple(COMPONENTS[:2]), year=2100)
-            try:
-                bicop2 = quantify_bivariate_dependence(cop_workflow, components=tuple(COMPONENTS[1:]), year=2100)
-            except KeyError:
-                print(f'No {COMPONENTS[1]}-{COMPONENTS[1]} dependence found for {cop_workflow}; using independence')
-                bicop2 = pv.Bicop(family=pv.BicopFamily.indep)
-            families = (bicop1.family, bicop2.family)
-            rotations = (bicop1.rotation, bicop2.rotation)
-            taus = (bicop1.tau, bicop2.tau)
+        bicop1 = quantify_bivariate_dependence(cop_workflow, components=tuple(COMPONENTS[:2]))
+        try:
+            bicop2 = quantify_bivariate_dependence(cop_workflow, components=tuple(COMPONENTS[1:]))
+        except KeyError:
+            print(f'No {COMPONENTS[1]}-{COMPONENTS[1]} dependence found for {cop_workflow}; using independence')
+            bicop2 = pv.Bicop(family=pv.BicopFamily.indep)
+        families = (bicop1.family, bicop2.family)
+        rotations = (bicop1.rotation, bicop2.rotation)
+        taus = (bicop1.tau, bicop2.tau)
         # Create DataFrame to hold percentile time series for this copula
         data_df = pd.DataFrame()
         # For each year, calculate percentiles of total ice-sheet contribution
