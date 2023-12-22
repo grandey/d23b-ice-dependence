@@ -922,8 +922,8 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
 
 
 def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
-                     colors_a=('green', ), colors_b=('darkred', 'blue'), ylim=(-0.2, 3.25),
-                     marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,):
+                     colors_a=('green', ), colors_b=('darkred', 'blue'),
+                     marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100, ylim=(-0.2, 3.25)):
     """
     Plot figure showing median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs tau (x-axis)
     for (a) Gaussian pair copulas and (b) Joe & Clayton pair copulas (default).
@@ -935,8 +935,6 @@ def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.Bico
         Default is (pv.BicopFamily.gaussian, ) and (pv.BicopFamily.joe, pv.BicopFamily.clayton).
     colors_a and colors_b : tuple
         Colors to use when plotting. Default is ('green', ) and ('darkred', 'blue').
-    ylim : tuple
-        Limits for y-axis. Default is (-0.2, 3.25).
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
         corresponding to the component marginals.
@@ -944,6 +942,8 @@ def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.Bico
         Scenario to use for the component marginals. Options are 'ssp126' and 'ssp585' (default).
     marg_year : int
         Year to use for the component marginals. Default is 2100.
+    ylim : tuple
+        Limits for y-axis. Default is (-0.2, 3.25).
 
     Returns
     -------
