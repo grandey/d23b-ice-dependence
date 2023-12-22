@@ -64,6 +64,8 @@ WORKFLOW_COLORS = {'wf_1e': 'darkblue',  # colors used by ax_total_vs_time(), ax
                    '10': 'darkorange',
                    '01': 'peru',
                    }
+TAU_REG = r'$\tau$'  # tau (regular font)
+TAU_BOLD = r'$\bf{\tau}$'  # tau (bold font)
 FIG_DIR = Path.cwd() / 'figs_d23b'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
 S_NUM = itertools.count(1)  # supplementary figures counter
@@ -690,7 +692,7 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     ax.set_ylim([0, 1])
     # Annotate with best-fit copula (limited to single-parameter families)
     bicop = quantify_bivariate_dependence(cop_workflow='P21+L23', components=('EAIS', 'WAIS'))
-    ax.text(0.945, 0.06, f'Best fit: {bicop.str().split(",")[0]},\nwith $\\tau$ = {bicop.tau:.2f}',
+    ax.text(0.945, 0.06, f'Best fit: {bicop.str().split(",")[0]},\nwith {TAU_REG} = {bicop.tau:.2f}',
             fontsize='large', ha='right', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
     # Main title
     fig.suptitle('Antarctic ISM ensemble')
@@ -838,7 +840,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4')):
         for column in columns[1:]:  # loop over component combinations (ignoring Notes column)
             try:  # quantify dependence
                 bicop = quantify_bivariate_dependence(cop_workflow=workflow, components=tuple(column.split('—')))
-                annot_df.loc[workflow, column] = f'{bicop.str().split(",")[0]},\n$\\tau$ = {bicop.tau:.2f}'
+                annot_df.loc[workflow, column] = f'{bicop.str().split(",")[0]},\n{TAU_BOLD} = {bicop.tau:.2f}'
                 tau_df.loc[workflow, column] = bicop.tau
             except KeyError:
                 annot_df.loc[workflow, column] = 'N/A'
@@ -860,7 +862,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4')):
         label.set_fontweight('bold')
     cbar = ax.collections[0].colorbar
     cbar.set_ticks([-1., 0., 1.])
-    cbar.set_label('Kendall\'s $\\tau$')
+    cbar.set_label(f'Kendall\'s {TAU_BOLD}')
     if cop_workflows == ('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'):
         fig.suptitle('Dependence in the AR6 workflow samples and the ISM ensemble')
     return fig, ax
@@ -921,7 +923,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
     # Customize plot
     ax.legend(loc='upper left', fontsize='large')
     ax.set_xlim(tau_t[0], tau_t[-1])
-    ax.set_xlabel(r"Kendall's $\bf{\tau}$")
+    ax.set_xlabel(f"Kendall's {TAU_BOLD}")
     ax.set_ylabel(f'Total ice-sheet contribution, m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(tau_t))
