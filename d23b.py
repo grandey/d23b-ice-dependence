@@ -23,6 +23,8 @@ import xarray as xr
 
 
 # Matplotlib settings
+plt.rcParams['figure.titlesize'] = 'x-large'  # suptitle
+plt.rcParams['figure.titleweight'] = 'bold'  # suptitle
 plt.rcParams['axes.titlesize'] = 'x-large'
 plt.rcParams['axes.titleweight'] = 'bold'
 plt.rcParams['axes.labelsize'] = 'large'
@@ -670,9 +672,9 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     sns.scatterplot(ism_df, x='EAIS', y='WAIS', hue='Group', style='Group', ax=ax)
     ax.legend(loc='lower right', fontsize='large', framealpha=1,
               edgecolor='0.85')  # specify edgecolor consistent with box in (b)
-    ax.set_title(f'(a) ISM ensemble WAIS vs EAIS')
-    ax.set_xlabel('EAIS, m (sea-level equivalent)')
-    ax.set_ylabel('WAIS, m (sea-level equivalent)')
+    ax.set_title(f'(a) Sea-level equivalent data')
+    ax.set_xlabel('EAIS, m')
+    ax.set_ylabel('WAIS, m')
     ax.set_xlim(-0.15, 0.65)
     ax.set_xticks(np.arange(-0.1, 0.6, 0.1))
     # (b) Pseudo-copula data on copula scale
@@ -686,10 +688,12 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     ax.set_ylabel('WAIS, unitless')
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])
-    # Fit copula (limited to single-parameter families)
+    # Annotate with best-fit copula (limited to single-parameter families)
     bicop = quantify_bivariate_dependence(cop_workflow='P21+L23', components=('EAIS', 'WAIS'))
-    ax.text(0.75, 0.06, f'Best fit: {bicop.family.name.capitalize()}\nwith $\\tau$ = {bicop.tau:.2f}',
+    ax.text(0.75, 0.06, f'Best fit: {bicop.str().split(",")[0]},\nwith $\\tau$ = {bicop.tau:.2f}',
             fontsize='large', ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
+    # Main title
+    fig.suptitle('Antarctic ISM ensemble')
     return fig, axs
 
 
