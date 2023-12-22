@@ -857,27 +857,27 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4')):
     return fig, ax
 
 
-def ax_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
-                    families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotations=(0, 0), colors=('darkred', 'blue'),
+def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotations=(0, 0), colors=('darkred', 'blue'),
+                    marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
                     ax=None):
     """
     Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs Kendall's tau (x-axis).
 
     Parameters
     ----------
-    workflow : str
-        AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
-        corresponding to the component marginals.
-    scenario : str
-        The scenario for the component marginals. Default is 'ssp585'.
-    year : int
-        Target year for the component marginals. Default is 2100.
     families : tuple
         Pair copula families. Default is (pv.BicopFamily.joe, pv.BicopFamily.clayton).
     rotations : tuple
         Pair copula rotations. Default is (0, 0).
     colors : tuple
         Colors to use when plotting. Default is ('darkred', 'blue').
+    marg_workflow : str
+        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
+        corresponding to the component marginals.
+    marg_scenario : str
+        Scenario to use for the component marginals. Options are 'ssp126' and 'ssp585' (default).
+    marg_year : int
+        Year to use for the component marginals. Default is 2100.
     ax : Axes.
         Axes on which to plot. If None, new Axes are created. Default is None.
 
@@ -900,8 +900,8 @@ def ax_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
         p95_t = np.full(len(tau_t), np.nan)  # 95th percentile
         for t, tau in enumerate(tau_t):  # for each tau, calculate total ice-sheet contribution
             trivariate_df = sample_trivariate_distribution(families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
-                                                           marg_workflow=workflow, marg_scenario=scenario,
-                                                           marg_year=year)
+                                                           marg_workflow=marg_workflow, marg_scenario=marg_scenario,
+                                                           marg_year=marg_year)
             sum_ser = trivariate_df.sum(axis=1)
             p50_t[t] = np.percentile(sum_ser, 50)  # median
             p5_t[t] = np.percentile(sum_ser, 5)  # 5th percentile
@@ -913,11 +913,11 @@ def ax_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
     ax.legend(loc='upper left', fontsize='large')
     ax.set_xlim(tau_t[0], tau_t[-1])
     ax.set_xlabel(r"Kendall's $\bf{\tau}$")
-    ax.set_ylabel(f'Total ice-sheet contribution (2005–{year}), m')
+    ax.set_ylabel(f'Total ice-sheet contribution (2005–{marg_year}), m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(tau_t))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
-    ax.set_title(f'{workflow} {scenario} {year}')
+    ax.set_title(f'{marg_workflow} {marg_scenario} {marg_year}')
     return ax
 
 
