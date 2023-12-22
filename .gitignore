@@ -8,6 +8,7 @@ scratch.py
 .DS_Store
 *.pdf
 *pdf
+o_png/
 *~
 
 # Byte-compiled / optimized / DLL files

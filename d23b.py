@@ -63,6 +63,10 @@ WORKFLOW_COLORS = {'wf_1e': 'darkgreen',  # colors used by ax_total_vs_time()
                    '10': 'grey',
                    '01': 'grey',
                    }
+FIG_DIR = Path.cwd() / 'figs_d23b'  # directory in which to save figures
+F_NUM = itertools.count(1)  # main figures counter
+S_NUM = itertools.count(1)  # supplementary figures counter
+O_NUM = itertools.count(1)  # other figures counter
 
 
 def get_watermark():
@@ -1126,8 +1130,6 @@ def fig_total_vs_time(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), ref_w
     return fig, axs
 
 
-# Influence of GRD fingerprints
-
 def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
                                marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
                                ax=None):
@@ -1213,31 +1215,18 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     return ax
 
 
-# Name and save figures
-
-# Counters for figures
-f_num = itertools.count(1)  # main figures
-e_num = itertools.count(1)  # extended data figures
-s_num = itertools.count(1)  # supplementary figures
-o_num = itertools.count(1)  # other figures
-
-
-def name_save_fig(fig, feso='o', exts=('pdf', 'png'), fig_dir=Path('figs_d23b'), close=False):
+def name_save_fig(fig, fso='f', exts=('pdf', 'png'), close=False):
     """
     Name & save a figure, then increase counter.
-
-    Based on https://github.com/grandey/d22a-mcdc.
 
     Parameters
     ----------
     fig : Figure
         Figure to save.
-    feso : str
-        Figure type. Either 'f' (main), 'e' (extended data), 's' (supplement), or 'o' (other; default).
+    fso : str
+        Figure type. Either 'f' (main), 's' (supplement), or 'o' (other; default).
     exts : tuple
         Extensions to use. Default is ('pdf', 'png').
-    fig_dir : Path
-        Directory in which to save figures. Default is Path('figs_d23b').
     close : bool
         Suppress output in notebook? Default is False.
 
@@ -1245,24 +1234,26 @@ def name_save_fig(fig, feso='o', exts=('pdf', 'png'), fig_dir=Path('figs_d23b'),
     -------
     fig_name : str
         Name of figure.
+
+    Notes
+    -----
+    This function follows https://github.com/grandey/d22a-mcdc & https://github.com/grandey/d23a-fusion.
     """
     # Name based on counter, then update counter (in preparation for next figure)
-    if feso == 'f':
-        fig_name = f'fig{next(f_num):02}'
-    elif feso == 'e':
-        fig_name = f'e{next(e_num):02}'
-    elif feso == 's':
-        fig_name = f's{next(s_num):02}'
+    if fso == 'f':
+        fig_name = f'fig{next(F_NUM):02}'
+    elif fso == 's':
+        fig_name = f's{next(S_NUM):02}'
     else:
-        fig_name = f'o{next(o_num):02}'
+        fig_name = f'o{next(O_NUM):02}'
     # File location based on extension(s)
     for ext in exts:
         # Sub-directory
-        sub_dir = fig_dir.joinpath(f'{feso}_{ext}')
+        sub_dir = FIG_DIR.joinpath(f'{fso}_{ext}')
         sub_dir.mkdir(exist_ok=True)
         # Save
         fig_path = sub_dir.joinpath(f'{fig_name}.{ext}')
-        fig.savefig(fig_path, bbox_inches='tight')
+        fig.savefig(fig_path)
         # Print file name and size
         fig_size = fig_path.stat().st_size / 1024 / 1024  # bytes -> MB
         print(f'Written {fig_name}.{ext} ({fig_size:.2f} MB)')
