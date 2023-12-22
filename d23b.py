@@ -959,12 +959,12 @@ def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.Bico
     ax = axs[0]
     _ = ax_total_vs_tau(families=families_a, rotations=(0, 0), colors=colors_a,
                         marg_workflow=marg_workflow, marg_scenario=marg_scenario, marg_year=marg_year, ax=ax)
-    ax.set_title(f'(a) {" and ".join(f.name.capitalize() for f in families_a)} pair copulas')
+    ax.set_title(f'(a) {" & ".join(f.name.capitalize() for f in families_a)} pair copulas')
     # (b)
     ax = axs[1]
     _ = ax_total_vs_tau(families=families_b, rotations=(0, 0), colors=colors_b,
                         marg_workflow=marg_workflow, marg_scenario=marg_scenario, marg_year=marg_year, ax=ax)
-    ax.set_title(f'(b) {" and ".join(f.name.capitalize() for f in families_b)} pair copulas')
+    ax.set_title(f'(b) {" & ".join(f.name.capitalize() for f in families_b)} pair copulas')
     ax.set_ylabel(None)
     ax.set_ylim(ylim)
     return fig, axs
@@ -1110,7 +1110,7 @@ def fig_total_vs_time(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), ref_w
     else:
         ncols = 2
     nrows = math.ceil(len(cop_workflows) / 2)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(5*ncols, 4*nrows), sharey=True, sharex=True, constrained_layout=True)
+    fig, axs = plt.subplots(nrows, ncols, figsize=(5*ncols, 4*nrows), sharey=True, sharex=True, tight_layout=True)
     # Flatten axs
     try:
         axs_flat = axs.flatten()
