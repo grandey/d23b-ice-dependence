@@ -1128,31 +1128,25 @@ def fig_total_vs_time(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), ref_w
 
 # Influence of GRD fingerprints
 
-def ax_sum_vs_gris_fingerprint(projection_source='fusion', scenario='SSP5-8.5', year=2100,
-                               families=(pv.BicopFamily.gaussian, pv.BicopFamily.indep),
-                               rotations=(0, 0), taus=(1.0, 0.0), colors=('darkgreen', 'darkorange'),
-                               n_samples=int(1e5), ax=None):
+def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
+                               marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
+                               ax=None):
     """
     Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs GrIS GRD fingerprint (x-axis).
 
     Parameters
     ----------
-    projection_source : str
-        The projection source for the marginal distributions. Default is 'fusion'.
-    scenario : str
-        The scenario for the marginal distributions. Default is 'SSP5-8.5'
-    year : int
-        Target year for which to plot data. Default is 2100.
-    families : tuple
-        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.indep).
-    rotations : tuple
-        Pair copula rotations. Default is (0, 0).
-    taus: tuple
-        Pair copula Kendall's tau values. Default is (1.0, 0.0).
-    colors : tuple
-        Colors to use when plotting. Default is ('darkgreen', 'darkorange').
-    n_samples : int
-        Number of samples to generate for each copula. Default is int(1e5).
+    cop_workflows : tuple of str
+        AR6 workflow (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), independence ('0'),
+        or perfect dependence between two components (e.g. '10') corresponding to the vine copula to be used.
+        Default is ('1', '0').
+    marg_workflow : str
+        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
+        corresponding to the component marginals.
+    marg_scenario : str
+        Scenario to use for the component marginals. Options are 'ssp126' and 'ssp585' (default).
+    marg_year : int
+        Year to use for the component marginals. Default is 2100.
     ax : Axes.
         Axes on which to plot. If None, new Axes are created. Default is None.
 
@@ -1168,30 +1162,32 @@ def ax_sum_vs_gris_fingerprint(projection_source='fusion', scenario='SSP5-8.5', 
     eais_fp = 1.10
     wais_fp = 1.15
     gris_fp_g = np.arange(-1.8, 1.21, 0.05)  # _g indicates GrIS fingerprint dimension
-    # For each copula, calculate EAIS+WAIS+GrIS for different GrIS fingerprints and plot median & 5th-95th range
-    for family, rotation, tau, color, hatch, linestyle, linewidth in zip(families, rotations, taus, colors,
-                                                                         ('//', r'\\'), ('--', '-.'), (3, 2)):
-        if family == 'Mixture':
-            families2 = 'Mixture'  # used when calling sample_trivariate_distribution() below
-            label = 'Mixture'  # label to use in legend
-            if len(tau) == 2:
-                label = f'{label}, $\\tau$ ~ U({tau[0]},{tau[1]})'
-        else:
-            families2 = (family, )*2
-            label = family.name.capitalize()
-            label = f'{label}, $\\tau$ = {tau}'
+    # For each copula, calculate total ice-sheet contribution for diff. GrIS fingerprints and plot median & 5th-95th
+    for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', r'\\'), ('--', '-.'), (3, 2)):
+        # Specify pair copula families, rotations, and tau
+        bicop1 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[:2]))
+        try:
+            bicop2 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[1:]))
+        except KeyError:
+            print(f'No {COMPONENTS[1]}-{COMPONENTS[1]} dependence found for {cop_workflow}; using independence')
+            bicop2 = pv.Bicop(family=pv.BicopFamily.indep)
+        families = (bicop1.family, bicop2.family)
+        rotations = (bicop1.rotation, bicop2.rotation)
+        taus = (bicop1.tau, bicop2.tau)
         # Get trivariate distribution data for global mean (ie fingerprints all 1.0)
-        x_n3 = sample_trivariate_distribution(projection_source=projection_source, scenario=scenario, year=year,
-                                              families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
-                                              n_samples=n_samples, plot=False)
+        x_df = sample_trivariate_distribution(families=families, rotations=rotations, taus=taus,
+                                              marg_workflow=marg_workflow, marg_scenario=marg_scenario,
+                                              marg_year=marg_year)
         # Create DataFrame to hold percentile data across GrIS fingerprints
         data_df = pd.DataFrame()
         # Loop over GrIS fingerprints and calculate 5th, 50th, and 95th percentiles of total ice-sheet contribution
         for gris_fp in gris_fp_g:
             for perc in (5, 50, 95):
-                sum_n = eais_fp * x_n3[:, 0] + wais_fp * x_n3[:, 1] + gris_fp * x_n3[:, 2]
-                data_df.loc[gris_fp, perc] = np.percentile(sum_n, perc)
+                sum_ser = eais_fp * x_df['EAIS'] + wais_fp * x_df['WAIS'] + gris_fp * x_df['GrIS']
+                data_df.loc[gris_fp, perc] = np.percentile(sum_ser, perc)
         # Plot data for this copula
+        label = WORKFLOW_LABELS[cop_workflow]
+        color = WORKFLOW_COLORS[cop_workflow]
         ax.fill_between(data_df.index, data_df[5], data_df[95], color=color, alpha=0.2, hatch=hatch,
                         label=f'{label} (5th–95th)')
         sns.lineplot(data_df[50], color=color, label=f'{label} (median)', linestyle=linestyle, linewidth=linewidth,
@@ -1200,7 +1196,7 @@ def ax_sum_vs_gris_fingerprint(projection_source='fusion', scenario='SSP5-8.5', 
     ax.legend(loc='upper left', framealpha=1, fontsize='large')
     ax.set_xlim(gris_fp_g[0], gris_fp_g[-1])
     ax.set_xlabel('Fingerprint of GrIS')
-    ax.set_ylabel(f'Total ice-sheet contribution (2005–{year}), m')
+    ax.set_ylabel(f'Total ice-sheet contribution (2005–{marg_year}), m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(gris_fp_g))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
