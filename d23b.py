@@ -589,17 +589,17 @@ def sample_trivariate_distribution(families=(pv.BicopFamily.gaussian, pv.BicopFa
     return trivariate_df
 
 
-def fig_component_marginals(workflow='fusion_1e', scenario='ssp585', year=2100):
+def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100):
     """
     Plot figure showing marginals for the ice-sheet components.
 
     Parameters
     ----------
-    workflow : str
+    marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default).
-    scenario : str
+    marg_scenario : str
         Scenario. Options are 'ssp126' and 'ssp585' (default).
-    year : int
+    marg_year : int
         Year. Default is 2100.
 
     Returns
@@ -613,7 +613,7 @@ def fig_component_marginals(workflow='fusion_1e', scenario='ssp585', year=2100):
     # Loop over components and Axes
     for i, (component, ax) in enumerate(zip(COMPONENTS, axs)):
         # Get marginal quantile function containing marginal samples
-        qf_da = get_component_qf(workflow=workflow, component=component, scenario=scenario, year=year)
+        qf_da = get_component_qf(workflow=marg_workflow, component=component, scenario=marg_scenario, year=marg_year)
         # Plot KDE
         sns.kdeplot(qf_da, bw_adjust=0.3, color='b', fill=True, cut=0,  # limit to data limits
                     ax=ax)
@@ -632,7 +632,7 @@ def fig_component_marginals(workflow='fusion_1e', scenario='ssp585', year=2100):
         # Title etc
         ax.set_title(f'({chr(97+i)}) {component}')
     # x-axis label and limits
-    axs[-1].set_xlabel(f'Contribution to GMSLR (2005–{year}), m')
+    axs[-1].set_xlabel(f'Contribution to GMSLR (2005–{marg_year}), m')
     axs[-1].set_xlim([-0.2, 1.2])
     return fig, axs
 
