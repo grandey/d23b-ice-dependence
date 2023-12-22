@@ -45,22 +45,22 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e',  # names of "workflows", inc. ISM ens
                    'fusion_1e': 'Fusion',  # fusion used only for component marginals
                    '0': 'Independence',  # idealized indepedence used only when coupling with copulas
                    '1': 'Perfect dependence',  # idealized perfect dependence used only when coupling with copulas
-                   '10': f'{COMPONENTS[0]}—{COMPONENTS[1]} perfect dependence',  # perfect dependence & independence
-                   '01': f'{COMPONENTS[1]}—{COMPONENTS[2]} perfect dependence',  # independence & perfect dependence
+                   '10': f'{COMPONENTS[0]}—{COMPONENTS[1]} perfect dep.',  # perfect dependence & independence
+                   '01': f'{COMPONENTS[1]}—{COMPONENTS[2]} perfect dep.',  # independence & perfect dependence
 }
 WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',  # notes used by fig_dependence_table()
                   'wf_3e': 'Antarctic ISM\nensemble\n(DeConto et al., 2021)',
                   'P21+L23': 'Antarctic ISM\nensemble\n(Payne et al., 2021;\nLi et al., 2023)',
                   'wf_4': 'Structured\nexpert judgment\n(Bamber et al., 2019)',
                   }
-WORKFLOW_COLORS = {'wf_1e': 'darkgreen',  # colors used by ax_total_vs_time()
+WORKFLOW_COLORS = {'wf_1e': 'darkblue',  # colors used by ax_total_vs_time(), ax_sum_vs_gris_fingerprint()
                    'wf_3e': 'darkred',
-                   'wf_4': 'deeppink',
-                   'P21+L23': 'red',
-                   '0': 'lightskyblue',
+                   'wf_4': 'darkgreen',
+                   'P21+L23': 'purple',
+                   '0': 'lightslategrey',
                    '1': 'brown',
-                   '10': 'grey',
-                   '01': 'grey',
+                   '10': 'darkorange',
+                   '01': 'peru',
                    }
 FIG_DIR = Path.cwd() / 'figs_d23b'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
@@ -1006,7 +1006,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     # List to hold DataFrames created below
     data_dfs = []
     # For each copula, calculate total ice-sheet contribution for different years and plot
-    for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', r'\\'), ('--', '-.'), (3, 2)):
+    for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', '..'), ('--', '-.'), (3, 2)):
         # Specify pair copula families, rotations, and tau
         bicop1 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[:2]))
         try:
@@ -1124,7 +1124,7 @@ def fig_total_vs_time(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), ref_w
         if len(cop_workflows) == 1:
             ax.set_title(f'{WORKFLOW_LABELS[cop_workflow]} & {WORKFLOW_LABELS[ref_workflow]}')
         else:
-            ax.set_title(f'({chr(97+i)}) {WORKFLOW_LABELS[cop_workflow]}')
+            ax.set_title(f'({chr(97+i)}) {WORKFLOW_LABELS[cop_workflow].replace("dep.", "dependence")}')
         ax.set_ylim(ylim)
     return fig, axs
 
@@ -1164,7 +1164,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     wais_fp = 1.15
     gris_fp_g = np.arange(-1.8, 1.21, 0.05)  # _g indicates GrIS fingerprint dimension
     # For each copula, calculate total ice-sheet contribution for diff. GrIS fingerprints and plot median & 5th-95th
-    for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', r'\\'), ('--', '-.'), (3, 2)):
+    for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', '..'), ('--', '-.'), (3, 2)):
         # Specify pair copula families, rotations, and tau
         bicop1 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[:2]))
         try:
@@ -1208,8 +1208,8 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     ax.set_ylim(ax.get_ylim())  # fix y-axis limits before plotting points near limit
     for gauge, city in [('REYKJAVIK', 'Reykjavik'), ('DUBLIN', 'Dublin'), ('TANJONG_PAGAR', 'Singapore')]:
         gris_fp = read_gauge_grd(gauge=gauge)['GrIS']
-        plt.axvline(gris_fp, color='red', linestyle='--', alpha=0.5)
-        ax.text(gris_fp, ax.get_ylim()[0]+0.05, city, color='red', fontsize='large',
+        plt.axvline(gris_fp, color='darkgreen', linestyle='--', alpha=0.5)
+        ax.text(gris_fp, ax.get_ylim()[0]+0.05, city, color='darkgreen', fontsize='large',
                 ha='right', va='bottom', rotation=90)
     return ax
 
