@@ -637,7 +637,7 @@ def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', m
         # Title etc
         ax.set_title(f'({chr(97+i)}) {component}')
     # x-axis label and limits
-    axs[-1].set_xlabel(f'Contribution to GMSLR (2005–{marg_year}), m')
+    axs[-1].set_xlabel(f'Contribution to GMSLR, m')
     axs[-1].set_xlim([-0.2, 1.2])
     return fig, axs
 
@@ -920,7 +920,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
     ax.legend(loc='upper left', fontsize='large')
     ax.set_xlim(tau_t[0], tau_t[-1])
     ax.set_xlabel(r"Kendall's $\bf{\tau}$")
-    ax.set_ylabel(f'Total ice-sheet contribution (2005–{marg_year}), m')
+    ax.set_ylabel(f'Total ice-sheet contribution, m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(tau_t))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
@@ -1201,11 +1201,11 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     ax.legend(loc='upper left', framealpha=1, fontsize='large')
     ax.set_xlim(gris_fp_g[0], gris_fp_g[-1])
     ax.set_xlabel('Fingerprint of GrIS')
-    ax.set_ylabel(f'Total ice-sheet contribution (2005–{marg_year}), m')
+    ax.set_ylabel(f'Total ice-sheet contribution, m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(gris_fp_g))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
-    ax.set_title('GRD fingerprints influence ice-sheet contribution to RSLC')
+    ax.set_title('Ice-sheet contribution to RSLC vs fingerprint of GrIS')
     # Annotations
     ax.text(1, -0.15, f'Fingerprint of EAIS = {eais_fp:.2f}\nFingerprint of WAIS = {wais_fp:.2f}',
             transform=ax.transAxes, ha='right', va='bottom')
