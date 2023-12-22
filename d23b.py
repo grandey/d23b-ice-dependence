@@ -690,8 +690,8 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     ax.set_ylim([0, 1])
     # Annotate with best-fit copula (limited to single-parameter families)
     bicop = quantify_bivariate_dependence(cop_workflow='P21+L23', components=('EAIS', 'WAIS'))
-    ax.text(0.75, 0.06, f'Best fit: {bicop.str().split(",")[0]},\nwith $\\tau$ = {bicop.tau:.2f}',
-            fontsize='large', ha='center', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
+    ax.text(0.945, 0.06, f'Best fit: {bicop.str().split(",")[0]},\nwith $\\tau$ = {bicop.tau:.2f}',
+            fontsize='large', ha='right', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
     # Main title
     fig.suptitle('Antarctic ISM ensemble')
     return fig, axs
@@ -852,7 +852,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4')):
     fig, ax = plt.subplots(1, 1, figsize=(10, 1*len(cop_workflows)), tight_layout=True)
     # Plot heatmap
     sns.heatmap(tau_df, cmap='seismic', vmin=-1., vmax=1., annot=annot_df, fmt='', annot_kws={'weight': 'bold'},
-                ax=ax)
+                linecolor='lightgrey', linewidths=1, ax=ax)
     # Customise plot
     ax.tick_params(top=False, bottom=False, left=False, right=False, labeltop=True, labelbottom=False, rotation=0)
     ax.set_yticklabels([WORKFLOW_LABELS[workflow] for workflow in cop_workflows])
@@ -861,6 +861,8 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4')):
     cbar = ax.collections[0].colorbar
     cbar.set_ticks([-1., 0., 1.])
     cbar.set_label('Kendall\'s $\\tau$')
+    if cop_workflows == ('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'):
+        fig.suptitle('Dependence in the AR6 workflow samples and the ISM ensemble')
     return fig, ax
 
 
