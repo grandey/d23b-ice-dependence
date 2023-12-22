@@ -465,15 +465,18 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
         samples_list = []
         for component in components:
             if 'wf' in cop_workflow:  # if workflow, read samples DataArray and extract data
-                samples = read_ar6_samples(workflow=cop_workflow, component=component, scenario='ssp585', year=2100).data
+                samples = read_ar6_samples(workflow=cop_workflow, component=component, scenario='ssp585',
+                                           year=2100).data
             else:  # if ISM ensemble, read samples DataFrame and extract data
-                samples = read_ism_ensemble_data(ensemble=cop_workflow, ref_year=2015, target_year=2100)[component].values
+                samples = read_ism_ensemble_data(ensemble=cop_workflow, ref_year=2015,
+                                                 target_year=2100)[component].values
             samples_list.append(samples)
         # Fit copula (limited to single-parameter families)
         x_n2 = np.stack(samples_list, axis=1)
         u_n2 = pv.to_pseudo_obs(x_n2)
         controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
-                                                   pv.BicopFamily.gaussian, pv.BicopFamily.frank, pv.BicopFamily.clayton])
+                                                   pv.BicopFamily.gaussian, pv.BicopFamily.frank,
+                                                   pv.BicopFamily.clayton])
         bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
     # Return result
     return bicop
