@@ -921,22 +921,15 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
     return ax
 
 
-def fig_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
-                     families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
-                     colors_a=('green', ), colors_b=('darkred', 'blue'), ylim=(-0.2, 3.25)):
+def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
+                     colors_a=('green', ), colors_b=('darkred', 'blue'), ylim=(-0.2, 3.25),
+                     marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,):
     """
     Plot figure showing median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs tau (x-axis)
     for (a) Gaussian pair copulas and (b) Joe & Clayton pair copulas (default).
 
     Parameters
     ----------
-    workflow : str
-        AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
-        corresponding to the component marginals.
-    scenario : str
-        The scenario for the component marginals. Default is 'ssp585'.
-    year : int
-        Target year for the component marginals. Default is 2100.
     families_a and families_b : tuple
         Pair copula families to use for panels (a) and (b).
         Default is (pv.BicopFamily.gaussian, ) and (pv.BicopFamily.joe, pv.BicopFamily.clayton).
@@ -944,8 +937,13 @@ def fig_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
         Colors to use when plotting. Default is ('green', ) and ('darkred', 'blue').
     ylim : tuple
         Limits for y-axis. Default is (-0.2, 3.25).
-    n_samples : int
-        Number of samples to generate for each family and tau. Default is int(1e5).
+    marg_workflow : str
+        AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
+        corresponding to the component marginals.
+    marg_scenario : str
+        Scenario to use for the component marginals. Options are 'ssp126' and 'ssp585' (default).
+    marg_year : int
+        Year to use for the component marginals. Default is 2100.
 
     Returns
     -------
@@ -956,13 +954,13 @@ def fig_total_vs_tau(workflow='fusion_1e', scenario='ssp585', year=2100,
     fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharey=True, constrained_layout=True)
     # (a)
     ax = axs[0]
-    _ = ax_total_vs_tau(workflow=workflow, scenario=scenario, year=year,
-                        families=families_a, colors=colors_a, ax=ax)
+    _ = ax_total_vs_tau(families=families_a, rotations=(0, 0), colors=colors_a,
+                        marg_workflow=marg_workflow, marg_scenario=marg_scenario, marg_year=marg_year, ax=ax)
     ax.set_title(f'(a) {" and ".join(f.name.capitalize() for f in families_a)} pair copulas')
     # (b)
     ax = axs[1]
-    _ = ax_total_vs_tau(workflow=workflow, scenario=scenario, year=year,
-                        families=families_b, colors=colors_b, ax=ax)
+    _ = ax_total_vs_tau(families=families_b, rotations=(0, 0), colors=colors_b,
+                        marg_workflow=marg_workflow, marg_scenario=marg_scenario, marg_year=marg_year, ax=ax)
     ax.set_title(f'(b) {" and ".join(f.name.capitalize() for f in families_b)} pair copulas')
     ax.set_ylabel(None)
     ax.set_ylim(ylim)
