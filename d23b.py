@@ -486,7 +486,7 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
 
 
 @cache
-def sample_dvine_copula(families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussian), rotations=(0, 0), taus=(0.5, 0.5),
+def sample_dvine_copula(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotations=(0, 0), taus=(0.8, 0.5),
                         n_samples=20000, plot=False):
     """
     Sample truncated D-vine copula with given families, rotations, Kendall's tau values, and number of samples.
@@ -494,11 +494,11 @@ def sample_dvine_copula(families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussi
     Parameters
     ----------
     families : tuple of pv.BicopFamily
-        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.gaussian).
+        Pair copula families. Default is (pv.BicopFamily.joe, pv.BicopFamily.clayton).
     rotations : tuple of int
         Pair copula rotations. Ignored for Independence, Gaussian, and Frank copulas. Default is (0, 0).
     taus : tuple of float
-        Pair copula Kendall's tau values. Default is (0.5, 0.5).
+        Pair copula Kendall's tau values. Default is (0.8, 0.5).
     n_samples : int
         Number of samples to generate. Default is 20000.
     plot : bool
@@ -537,8 +537,8 @@ def sample_dvine_copula(families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussi
 
 
 @cache
-def sample_trivariate_distribution(families=(pv.BicopFamily.gaussian, pv.BicopFamily.gaussian),
-                                   rotations=(0, 0), taus=(0.5, 0.5),
+def sample_trivariate_distribution(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
+                                   rotations=(0, 0), taus=(0.8, 0.5),
                                    marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
                                    plot=False):
     """
@@ -547,11 +547,11 @@ def sample_trivariate_distribution(families=(pv.BicopFamily.gaussian, pv.BicopFa
     Parameters
     ----------
     families : tuple of pv.BicopFamily
-        Pair copula families. Default is (pv.BicopFamily.gaussian, pv.BicopFamily.gaussian).
+        Pair copula families. Default is (pv.BicopFamily.joe, pv.BicopFamily.clayton).
     rotations : tuple of int
         Pair copula rotations. Ignored for Independence, Gaussian, and Frank copulas. Default is (0, 0).
     taus : tuple of float
-        Pair copula Kendall's tau values. Default is (0.5, 0.5).
+        Pair copula Kendall's tau values. Default is (0.8, 0.5).
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
         corresponding to the component marginals.
