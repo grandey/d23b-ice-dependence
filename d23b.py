@@ -47,9 +47,9 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e',  # names of "workflows", inc. ISM ens
                    'P21+L23': 'P21+L23 ensemble',
                    'fusion_1e': 'Fusion',  # fusion used only for component marginals
                    '0': 'Independence',  # idealized indepedence used only when coupling with copulas
-                   '1': 'Perfect dependence',  # idealized perfect dependence used only when coupling with copulas
-                   '10': f'{COMPONENTS[0]}—{COMPONENTS[1]} perfect dep.',  # perfect dependence & independence
-                   '01': f'{COMPONENTS[1]}—{COMPONENTS[2]} perfect dep.',  # independence & perfect dependence
+                   '1': 'Perfect correlation',  # idealized perfect dependence used only when coupling with copulas
+                   '10': f'{COMPONENTS[0]}—{COMPONENTS[1]} perfect corr.',  # perfect dependence & independence
+                   '01': f'{COMPONENTS[1]}—{COMPONENTS[2]} perfect corr.',  # independence & perfect dependence
 }
 WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',  # notes used by fig_dependence_table()
                   'wf_3e': 'Antarctic ISM\nensemble\n(DeConto et al., 2021)',
@@ -868,7 +868,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4')):
     cbar.set_ticks([-1., 0., 1.])
     cbar.set_label(f'Kendall\'s {TAU_BOLD}')
     if cop_workflows == ('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'):
-        fig.suptitle('Dependence in the AR6 workflow samples and the ISM ensemble')
+        fig.suptitle('Correlation in the AR6 workflow samples and the ISM ensemble')
     return fig, ax
 
 
@@ -1136,7 +1136,7 @@ def fig_total_vs_time(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), ref_w
         if len(cop_workflows) == 1:
             ax.set_title(f'{WORKFLOW_LABELS[cop_workflow]} & {WORKFLOW_LABELS[ref_workflow]}')
         else:
-            ax.set_title(f'({chr(97+i)}) {WORKFLOW_LABELS[cop_workflow].replace("dep.", "dependence")}')
+            ax.set_title(f'({chr(97+i)}) {WORKFLOW_LABELS[cop_workflow].replace("corr.", "correlation")}')
         ax.set_ylim(ylim)
     return fig, axs
 
