@@ -679,7 +679,7 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     ax.set_xlabel('EAIS, m')
     ax.set_ylabel('WAIS, m')
     ax.set_xlim(-0.15, 0.65)
-    ax.set_xticks(np.arange(-0.1, 0.6, 0.1))
+    ax.set_xticks(np.arange(-0.1, 0.61, 0.1))
     # (b) Pseudo-copula data on copula scale
     ax = axs[1]
     x_n2 = np.stack([ism_df['EAIS'], ism_df['WAIS']], axis=1)
