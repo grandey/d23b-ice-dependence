@@ -34,7 +34,8 @@ plt.rcParams['ytick.labelsize'] = 'large'
 plt.rcParams['savefig.dpi'] = 300
 
 # Seaborn style
-sns.set_style('whitegrid')
+SNS_STYLE = 'whitegrid'  # default seaborn style to use
+sns.set_style(SNS_STYLE)
 
 
 # Constants
@@ -722,6 +723,7 @@ def fig_illustrate_copula():
     x_df = sample_trivariate_distribution(families=families, rotations=rotations, taus=taus,
                                           marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100)
     # 1st component plot: bivariate joint distribution (with marginals)
+    sns
     sns.set_style('ticks')
     g = sns.jointplot(x_df, x=COMPONENTS[0], y=COMPONENTS[1], kind='kde', cmap='Greens', fill=True,
                       levels=7, cut=0, marginal_ticks=False, marginal_kws={'bw_adjust': 0.3, 'color': 'b'},
@@ -810,6 +812,8 @@ def fig_illustrate_copula():
         ax4.text(x, -0.1, f'{s}\npair copula', ha='center', va='top', fontsize=18, color='g')
         ax4.imshow(plt.imread(temp_dir / f'temp_copula{i+2}.png'), extent=[x-0.9, x+0.9, 0, 1.8])
     ax4.set_title('(c) Truncated vine copula', fontsize='x-large')
+    # Reset seaborn style
+    sns.set_style(SNS_STYLE)
     return fig
 
 
