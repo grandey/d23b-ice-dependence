@@ -868,7 +868,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4')):
     cbar.set_ticks([-1., 0., 1.])
     cbar.set_label(f'Kendall\'s {TAU_BOLD}')
     if cop_workflows == ('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'):
-        fig.suptitle('Correlation in the AR6 workflow samples and the ISM ensemble')
+        fig.suptitle('Bivariate copulas fitted to the workflow samples and ISM ensemble')
     return fig, ax
 
 
