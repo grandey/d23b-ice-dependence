@@ -905,11 +905,12 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
     if ax is None:
         fig, ax = plt.subplots(1, 1)
     # For each copula, calculate total ice-sheet contribution for different tau values and plot median & 5th-95th
+    tau_t = np.linspace(0, 1, 51)  # tau values to use
+    p95_t_list = []  # list to hold 95th percentile arrays
     for family, rotation, color, hatch, linestyle, linewidth in zip(families, rotations, colors,
                                                                     ('//', r'\\'), ('--', '-.'), (3, 2)):
         families2 = (family, )*2
         label = family.name.capitalize()
-        tau_t = np.linspace(0, 1, 51)  # tau values to use
         p50_t = np.full(len(tau_t), np.nan)  # array to hold median at each tau
         p5_t = np.full(len(tau_t), np.nan)  # 5th percentile
         p95_t = np.full(len(tau_t), np.nan)  # 95th percentile
@@ -924,6 +925,24 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
         # Plot data for this family
         ax.fill_between(tau_t, p5_t, p95_t, color=color, alpha=0.2, label=f'{label} (5th–95th)', hatch=hatch)
         ax.plot(tau_t, p50_t, color=color, label=f'{label} (median)', linestyle=linestyle, linewidth=linewidth)
+        # Save 95th percentile data to list (used below)
+        p95_t_list.append(p95_t)
+    # Annotate with diffs and percentage diffs at 95th percentile
+    if len(families) == 1:  # if plotting a single family, use the diff between tau = 0 and tau = 1
+        p95_min = p95_t[0]
+        p95_max = p95_t[-1]
+        for p95 in [p95_min, p95_max]:
+            ax.axhline(p95, alpha=0.3, color='k', linestyle=':')
+    else:  # if plotting two or more families, use the diff at tau = 0.5 (middle index of 25)
+        p95_min = min([p95_t[25] for p95_t in p95_t_list])
+        p95_max = max([p95_t[25] for p95_t in p95_t_list])
+    p95_diff = p95_max - p95_min  # difference
+    p95_perc = 100. * p95_diff / p95_min  # percentage difference
+    ax.arrow(0.5, p95_min, 0., p95_diff, color='k', head_width=0.02, length_includes_head=True)  # plot arrow
+    diff_str = f'+ {p95_diff:.1f} m'  # annotate with absolute diff
+    ax.text(0.47, np.mean([p95_min, p95_max]), diff_str, va='center', ha='right', fontsize='large')
+    perc_str = f'+ {p95_perc:.0f} %'  # annotate with percentage diff
+    ax.text(0.53, np.mean([p95_min, p95_max]), perc_str, va='center', ha='left', fontsize='large')
     # Customize plot
     ax.legend(loc='upper left', fontsize='large')
     ax.set_xlim(tau_t[0], tau_t[-1])
