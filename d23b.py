@@ -938,11 +938,12 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
         p95_max = max([p95_t[25] for p95_t in p95_t_list])
     p95_diff = p95_max - p95_min  # difference
     p95_perc = 100. * p95_diff / p95_min  # percentage difference
-    ax.arrow(0.5, p95_min, 0., p95_diff, color='k', head_width=0.02, length_includes_head=True)  # plot arrow
-    diff_str = f'+ {p95_diff:.1f} m'  # annotate with absolute diff
-    ax.text(0.47, np.mean([p95_min, p95_max]), diff_str, va='center', ha='right', fontsize='large')
-    perc_str = f'+ {p95_perc:.0f} %'  # annotate with percentage diff
-    ax.text(0.53, np.mean([p95_min, p95_max]), perc_str, va='center', ha='left', fontsize='large')
+    ax.arrow(0.5, p95_min, 0., p95_diff,  # plot arrow
+             color='k', head_width=0.02, head_length=0.06, length_includes_head=True)
+    diff_str = f'{p95_diff:+.1f} m'  # annotate with absolute diff
+    ax.text(0.48, np.mean([p95_min, p95_max]), diff_str, va='center', ha='right', fontsize='large')
+    perc_str = f'{p95_perc:+.0f} %'  # annotate with percentage diff
+    ax.text(0.52, np.mean([p95_min, p95_max]), perc_str, va='center', ha='left', fontsize='large')
     # Customize plot
     ax.legend(loc='upper left', fontsize='large')
     ax.set_xlim(tau_t[0], tau_t[-1])
