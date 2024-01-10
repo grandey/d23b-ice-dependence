@@ -1077,10 +1077,13 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
             val1 = data_dfs[1].loc[year, perc]
             diff = val0 - val1  # difference, using val1 as the reference
             percent_diff = 100. * diff / val1  # percentage difference
-            ax.arrow(year+1, val1, 0., diff,  # plot arrow
+            ax.arrow(year+1, val1, 0., diff,  # plot arrow showing diff
                      color='k', head_width=1.5, head_length=0.02, length_includes_head=True, clip_on=False)
-            percent_str = f'{percent_diff:+.0f} %'  # annotate with percentage diff
-            ax.text(year+2.5, np.mean([val1, val0]), percent_str,
+            if abs(percent_diff) > 0.5:  # format percentage diff as string
+                percent_str = f'{percent_diff:+.0f} %'
+            else:
+                percent_str = f'{percent_diff:+.1f} %'
+            ax.text(year+2.5, np.mean([val1, val0]), percent_str,  # annotate with percentage diff
                     color='k', va='center', ha='left', fontsize='large')
     # Plot lines showing timing differences?
     if thresh_for_timing_diff:
