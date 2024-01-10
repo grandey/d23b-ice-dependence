@@ -1003,7 +1003,7 @@ def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.Bico
 
 def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
                      marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
-                     thresh_for_timing_diff=(1.4, 0.2), ax=None):
+                     show_percent_diff=True, thresh_for_timing_diff=(1.4, 0.2), ax=None):
     """
     Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs time (x-axis).
 
@@ -1020,6 +1020,8 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
         The scenario for the component marginals. Default is 'ssp585'.
     marg_years : np.array
         Target years for the component marginals. Default is np.arange(2020, 2101, 10).
+    show_percent_diff : bool
+        Show percentage difference in 95th percentile and median? Default is True.
     thresh_for_timing_diff : tuple, True, or None
         Thresholds to use if demonstrating the difference in timing at the 95th percentile and median.
         If True, select automatically. Default is (1.4, 0.2).
@@ -1033,7 +1035,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     """
     # Create axes?
     if ax is None:
-        fig, ax = plt.subplots(1, 1)
+        fig, ax = plt.subplots(1, 1, figsize=(5, 4))
     # List to hold DataFrames created below
     data_dfs = []
     # For each copula, calculate total ice-sheet contribution for different years and plot
@@ -1067,6 +1069,19 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
                      linestyle=linestyle, linewidth=linewidth, ax=ax)
         # Save percentile time series to list of DataFrames
         data_dfs.append(data_df)
+    # Show percentage difference in 95th percentile and median?
+    if show_percent_diff and len(data_dfs) > 1:
+        year = marg_years[-1]  # final year
+        for perc in (95, 50):  # loop over 95th percentile and median
+            val0 = data_dfs[0].loc[year, perc]  # percentile value in final year
+            val1 = data_dfs[1].loc[year, perc]
+            diff = val0 - val1  # difference, using val1 as the reference
+            percent_diff = 100. * diff / val1  # percentage difference
+            ax.arrow(year+1, val1, 0., diff,  # plot arrow
+                     color='k', head_width=1, head_length=0.02, length_includes_head=True, clip_on=False)
+            percent_str = f'{percent_diff:+.0f}%'  # annotate with percentage diff
+            ax.text(year+2, np.mean([val1, val0]), percent_str,
+                    color='k', va='center', ha='left', fontsize='large')
     # Plot lines showing timing differences?
     if thresh_for_timing_diff:
         # Select thresholds automatically?
@@ -1151,7 +1166,7 @@ def fig_total_vs_time(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), ref_w
     for i, (cop_workflow, ax) in enumerate(zip(cop_workflows, axs_flat)):
         _ = ax_total_vs_time(cop_workflows=(cop_workflow, ref_workflow),
                              marg_workflow=marg_workflow, marg_scenario=marg_scenario, marg_years=marg_years,
-                             thresh_for_timing_diff=thresh_for_timing_diff, ax=ax)
+                             show_percent_diff=True, thresh_for_timing_diff=thresh_for_timing_diff, ax=ax)
         if len(cop_workflows) == 1:
             ax.set_title(f'{WORKFLOW_LABELS[cop_workflow]} & {WORKFLOW_LABELS[ref_workflow]}')
         else:
