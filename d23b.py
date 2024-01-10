@@ -1078,9 +1078,9 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
             diff = val0 - val1  # difference, using val1 as the reference
             percent_diff = 100. * diff / val1  # percentage difference
             ax.arrow(year+1, val1, 0., diff,  # plot arrow
-                     color='k', head_width=1, head_length=0.02, length_includes_head=True, clip_on=False)
-            percent_str = f'{percent_diff:+.0f}%'  # annotate with percentage diff
-            ax.text(year+2, np.mean([val1, val0]), percent_str,
+                     color='k', head_width=1.5, head_length=0.02, length_includes_head=True, clip_on=False)
+            percent_str = f'{percent_diff:+.0f} %'  # annotate with percentage diff
+            ax.text(year+2.5, np.mean([val1, val0]), percent_str,
                     color='k', va='center', ha='left', fontsize='large')
     # Plot lines showing timing differences?
     if thresh_for_timing_diff:
@@ -1097,13 +1097,14 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
                 idx = np.abs(interp_perc - thresh).argmin()  # index closest to threshold
                 year_eq_threshs.append(interp_years[idx])  # year closest to threshold
             # Calculate timing difference
-            timing_diff = max(year_eq_threshs) - min(year_eq_threshs)
-            if timing_diff > 0:
-                # Plot line and text showing timing difference
-                ax.plot(year_eq_threshs, [thresh, ]*2, color='k', marker='|')
-                text_str = f'{timing_diff} yr'
-                ax.text(np.mean(year_eq_threshs), thresh+0.07, text_str,
-                        horizontalalignment='center', fontsize='large')
+            timing_diff = year_eq_threshs[0] - year_eq_threshs[1]
+            if timing_diff != 0:
+                # Plot arrow and text showing timing difference
+                ax.arrow(year_eq_threshs[1], thresh, timing_diff, 0,
+                         color='k', head_width=0.05, head_length=0.7, length_includes_head=True, zorder=3)
+                text_str = f'{timing_diff:+.0f} yr'
+                ax.text(np.mean(year_eq_threshs), thresh-0.05, text_str,
+                        ha='center', va='top', fontsize='large')
                 # Plot line showing threshold
                 ax.axhline(thresh, alpha=0.3, color='k', linestyle=':')
     # Customize plot
