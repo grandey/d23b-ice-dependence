@@ -53,8 +53,8 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e',  # names of "workflows", inc. ISM ens
 }
 WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',  # notes used by fig_dependence_table()
                   'wf_3e': 'Antarctic ISM\nensemble\n(DeConto et al., 2021)',
-                  'P21+L23': 'Antarctic ISM\nensemble\n(Payne et al., 2021;\nLi et al., 2023)',
                   'wf_4': 'Structured\nexpert judgment\n(Bamber et al., 2019)',
+                  'P21+L23': 'Antarctic ISM\nensemble\n(Payne et al., 2021;\nLi et al., 2023)'
                   }
 WORKFLOW_COLORS = {'wf_1e': 'darkblue',  # colors used by ax_total_vs_time(), ax_sum_vs_gris_fingerprint()
                    'wf_3e': 'darkred',
@@ -817,7 +817,7 @@ def fig_illustrate_copula():
     return fig
 
 
-def fig_dependence_table(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4')):
+def fig_dependence_table(cop_workflows=('wf_1e', 'P21+L23', 'wf_3e', 'wf_4')):
     """
     Plot heatmap table of bivariate copulas for AR6 workflows and ISM ensemble.
 
@@ -825,7 +825,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4')):
     ----------
     cop_workflows : tuple of str
         AR6 workflows (e.g. 'wf_1e'), ice-sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
-        Default is ('wf_1e', 'wf_3e', 'P21+L23', 'wf_4').
+        Default is ('wf_1e', 'P21+L23', 'wf_3e', 'wf_4').
 
     Returns
     -------
@@ -1122,7 +1122,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     return ax
 
 
-def fig_total_vs_time(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), ref_workflow='0',
+def fig_total_vs_time(cop_workflows=('wf_1e', 'P21+L23', 'wf_3e', 'wf_4'), ref_workflow='0',
                       marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
                       thresh_for_timing_diff=(1.4, 0.2), ylim=(-0.2, 2.3)):
     """
@@ -1134,7 +1134,7 @@ def fig_total_vs_time(cop_workflows=('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'), ref_w
     cop_workflows : tuple of str
         AR6 workflows (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), independence ('0'),
         or perfect dependence between two components (e.g. '10') corresponding to the vine copula to be used.
-        Note, these will be plotted in separate panels. Default is ('wf_1e', 'wf_3e', 'P21+L23', 'wf_4').
+        Note, these will be plotted in separate panels. Default is ('wf_1e', 'P21+L23', 'wf_3e', 'wf_4').
     ref_workflow : str
         Workflow corresponding to the vine copula to be used as the reference in all panels. Default is '0'.
     marg_workflow : str
