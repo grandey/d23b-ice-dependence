@@ -1122,7 +1122,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     return ax
 
 
-def fig_total_vs_time(cop_workflows=('wf_1e', 'P21+L23', 'wf_3e', 'wf_4'), ref_workflow='0',
+def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'P21+L23', 'wf_3e', 'wf_4'), ref_workflow='0',
                       marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
                       thresh_for_timing_diff=(1.4, 0.2), ylim=(-0.2, 2.3)):
     """
@@ -1161,7 +1161,7 @@ def fig_total_vs_time(cop_workflows=('wf_1e', 'P21+L23', 'wf_3e', 'wf_4'), ref_w
     else:
         ncols = 2
     nrows = math.ceil(len(cop_workflows) / 2)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(5*ncols, 4*nrows), sharey=True, sharex=True, tight_layout=True)
+    fig, axs = plt.subplots(nrows, ncols, figsize=(5*ncols, (3*nrows + 1)), sharey=True, sharex=True, tight_layout=True)
     # Flatten axs
     try:
         axs_flat = axs.flatten()
