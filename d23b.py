@@ -41,13 +41,12 @@ sns.set_style(SNS_STYLE)
 # Constants
 IN_BASE = Path.cwd() / 'data'  # base directory of input data
 COMPONENTS = ['EAIS', 'WAIS', 'GrIS']  # ice-sheet components of sea level, ordered according to vine copula
-WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e',  # names of "workflows", inc. ISM ensemble, fusion, idealized dependence
-                   'wf_4': 'Workflow 4',
-                   'wf_3e': 'Workflow 3e',
-                   'P21+L23': 'P21+L23 ensemble',
-                   'fusion_1e': 'Fusion',  # fusion used only for component marginals
-                   '0': 'Independence',  # idealized indepedence used only when coupling with copulas
-                   '1': 'Perfect correlation',  # idealized perfect dependence used only when coupling with copulas
+WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used for the correlation structures
+                   'wf_4': 'Workflow 4 corr.',
+                   'wf_3e': 'Workflow 3e corr.',
+                   'P21+L23': 'P21+L23 ensemble corr.',
+                   '0': 'Independence',  # idealized indepedence
+                   '1': 'Perfect correlation',  # idealized perfect dependence
                    '10': f'{COMPONENTS[0]}—{COMPONENTS[1]} perfect corr.',  # perfect dependence & independence
                    '01': f'{COMPONENTS[1]}—{COMPONENTS[2]} perfect corr.',  # independence & perfect dependence
 }
@@ -861,13 +860,13 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
                 linecolor='lightgrey', linewidths=1, ax=ax)
     # Customise plot
     ax.tick_params(top=False, bottom=False, left=False, right=False, labeltop=True, labelbottom=False, rotation=0)
-    ax.set_yticklabels([WORKFLOW_LABELS[workflow] for workflow in cop_workflows])
+    ax.set_yticklabels([WORKFLOW_LABELS[workflow].removesuffix(" corr.") for workflow in cop_workflows])
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontweight('bold')
     cbar = ax.collections[0].colorbar
     cbar.set_ticks([-1., 0., 1.])
     cbar.set_label(f'Kendall\'s {TAU_BOLD}')
-    if cop_workflows == ('wf_1e', 'wf_3e', 'P21+L23', 'wf_4'):
+    if cop_workflows == ('wf_1e', 'wf_4', 'wf_3e', 'P21+L23'):
         fig.suptitle('Bivariate copulas fitted to the workflow samples and ISM ensemble')
     return fig, ax
 
