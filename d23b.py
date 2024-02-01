@@ -49,7 +49,7 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    '1': 'Perfect correlation',  # idealized perfect dependence
                    '10': f'{COMPONENTS[0]}—{COMPONENTS[1]} perfect corr.',  # perfect dependence & independence
                    '01': f'{COMPONENTS[1]}—{COMPONENTS[2]} perfect corr.',  # independence & perfect dependence
-}
+                   }
 WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',  # notes used by fig_dependence_table()
                   'wf_4': 'Structured\nexpert judgment\n(Bamber et al., 2019)',
                   'wf_3e': 'Antarctic ISM\nensemble\n(DeConto et al., 2021)',
