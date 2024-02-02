@@ -47,7 +47,7 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    'P21+L23': 'P21+L23 ensemble corr.',
                    '0': 'Independence',  # idealized indepedence
                    '1': 'Perfect correlation',  # idealized perfect dependence
-                   '10': f'{COMPONENTS[0]}—{COMPONENTS[1]} perfect corr.',  # perfect dependence & independence
+                   '10': f'Antarctic correlation',  # perfect dependence & independence
                    '01': f'{COMPONENTS[1]}—{COMPONENTS[2]} perfect corr.',  # independence & perfect dependence
                    }
 WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',  # notes used by fig_dependence_table()
@@ -634,7 +634,7 @@ def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', m
         # Skewness and kurtosis
         ax.text(1.15, 6.5,  # position tuned for the default parameters
                 f"Skewness = {stats.skew(qf_da):.1f}\n"
-                f"Fisher's kurtosis = {stats.kurtosis(qf_da, fisher=True):0.2f}",
+                f"Fisher's kurtosis = {stats.kurtosis(qf_da, fisher=True):0.1f}",
                 ha='right', va='center', fontsize='medium', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
         # Title etc
         ax.set_title(f'({chr(97+i)}) {component}')
