@@ -1121,7 +1121,8 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     return ax
 
 
-def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L23'), ref_workflow='0',
+def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L23'),
+                      ref_workflows=('0', '0', '0', '10', '10', '10'),
                       marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
                       thresh_for_timing_diff=(1.4, 0.2), ylim=(-0.2, 2.3)):
     """
@@ -1134,8 +1135,9 @@ def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L
         AR6 workflows (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), independence ('0'),
         or perfect dependence between two components (e.g. '10') corresponding to the vine copula to be used.
         Note, these will be plotted in separate panels. Default is ('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L23').
-    ref_workflow : str
-        Workflow corresponding to the vine copula to be used as the reference in all panels. Default is '0'.
+    ref_workflows : tuple of str
+        Workflows corresponding to the vine copulas to be used as the reference in each panel.
+        Default is ('0', '0', '0', '10', '10', '10').
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
         corresponding to the component marginals.
@@ -1167,7 +1169,7 @@ def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L
     except AttributeError:  # if only one panel
         axs_flat = [axs, ]
     # Plot panels
-    for i, (cop_workflow, ax) in enumerate(zip(cop_workflows, axs_flat)):
+    for i, (cop_workflow, ref_workflow, ax) in enumerate(zip(cop_workflows, ref_workflows, axs_flat)):
         _ = ax_total_vs_time(cop_workflows=(cop_workflow, ref_workflow),
                              marg_workflow=marg_workflow, marg_scenario=marg_scenario, marg_years=marg_years,
                              show_percent_diff=True, thresh_for_timing_diff=thresh_for_timing_diff, ax=ax)
