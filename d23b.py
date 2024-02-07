@@ -40,7 +40,7 @@ sns.set_style(SNS_STYLE)
 
 # Constants
 IN_BASE = Path.cwd() / 'data'  # base directory of input data
-COMPONENTS = ['EAIS', 'WAIS', 'GrIS']  # ice-sheet components of sea level, ordered according to vine copula
+COMPONENTS = ['EAIS', 'WAIS', 'GrIS']  # ice sheet components of sea level, ordered according to vine copula
 WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used for the correlation structures
                    'wf_4': 'Workflow 4 corr.',
                    'wf_3e': 'Workflow 3e corr.',
@@ -184,7 +184,7 @@ def read_ism_ensemble_data(ensemble='P21+L23', ref_year=2015, target_year=2100):
             for in_fn in in_fns:
                 # Create dictionary to hold data for this input file
                 ais_dict = {'Group': f'P21'}
-                # Get ice-sheet model institute and name
+                # Get ice sheet model institute and name
                 ais_dict['Notes'] = f'{exp}_' + '_'.join(in_fn.name.split('_')[-3:-1])
                 # Read DataSet
                 in_ds = xr.load_dataset(in_fn)
@@ -210,7 +210,7 @@ def read_ism_ensemble_data(ensemble='P21+L23', ref_year=2015, target_year=2100):
             for esm in esm_list:
                 # Create dictionary to hold data for this input file
                 ais_dict = {'Group': group}
-                # Get ice-sheet model institute and name
+                # Get ice sheet model institute and name
                 ais_dict['Notes'] = f'{exp} {esm}'
                 # Read data
                 in_fn = IN_BASE / exp / esm / 'fort.22'
@@ -438,15 +438,15 @@ def get_fusion_weights():
 @cache
 def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAIS')):
     """
-    Quantify dependence between two ice-sheet components by fitting a bivariate copula to the year-2100 SSP5-8.5 data.
+    Quantify dependence between two ice sheet components by fitting a bivariate copula to the year-2100 SSP5-8.5 data.
 
     Parameters
     ----------
     cop_workflow : str
-        AR6 workflow (e.g. 'wf_1e', default), ice-sheet model ensemble (e.g. 'P21+L23'), or idealized dependence
+        AR6 workflow (e.g. 'wf_1e', default), ice sheet model ensemble (e.g. 'P21+L23'), or idealized dependence
         (e.g. '1'), for which to fit/specify the bivariate copula.
     components : tuple of str
-        Two ice-sheet components. Default is ('EAIS', 'WAIS').
+        Two ice sheet components. Default is ('EAIS', 'WAIS').
 
     Returns
     -------
@@ -598,7 +598,7 @@ def sample_trivariate_distribution(families=(pv.BicopFamily.joe, pv.BicopFamily.
 
 def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100):
     """
-    Plot figure showing marginals for the ice-sheet components.
+    Plot figure showing marginals for the ice sheet components.
 
     Parameters
     ----------
@@ -823,7 +823,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
     Parameters
     ----------
     cop_workflows : tuple of str
-        AR6 workflows (e.g. 'wf_1e'), ice-sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
+        AR6 workflows (e.g. 'wf_1e'), ice sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
         Default is ('wf_1e', 'wf_4', 'wf_3e', 'P21+L23').
 
     Returns
@@ -875,7 +875,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
                     marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
                     ax=None):
     """
-    Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs Kendall's tau (x-axis).
+    Plot median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs Kendall's tau (x-axis).
 
     Parameters
     ----------
@@ -903,7 +903,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
     # Create axes?
     if ax is None:
         fig, ax = plt.subplots(1, 1)
-    # For each copula, calculate total ice-sheet contribution for different tau values and plot median & 5th-95th
+    # For each copula, calculate total ice sheet contribution for different tau values and plot median & 5th-95th
     tau_t = np.linspace(0, 1, 51)  # tau values to use
     p95_t_list = []  # list to hold 95th percentile arrays
     for family, rotation, color, hatch, linestyle, linewidth in zip(families, rotations, colors,
@@ -913,7 +913,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
         p50_t = np.full(len(tau_t), np.nan)  # array to hold median at each tau
         p5_t = np.full(len(tau_t), np.nan)  # 5th percentile
         p95_t = np.full(len(tau_t), np.nan)  # 95th percentile
-        for t, tau in enumerate(tau_t):  # for each tau, calculate total ice-sheet contribution
+        for t, tau in enumerate(tau_t):  # for each tau, calculate total ice sheet contribution
             trivariate_df = sample_trivariate_distribution(families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
                                                            marg_workflow=marg_workflow, marg_scenario=marg_scenario,
                                                            marg_year=marg_year)
@@ -947,7 +947,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
     ax.legend(loc='upper left', fontsize='large')
     ax.set_xlim(tau_t[0], tau_t[-1])
     ax.set_xlabel(f"Kendall's {TAU_BOLD}")
-    ax.set_ylabel(f'Total ice-sheet contribution, m')
+    ax.set_ylabel(f'Total ice sheet contribution, m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(tau_t))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
@@ -959,7 +959,7 @@ def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.Bico
                      colors_a=('green', ), colors_b=('darkred', 'blue'),
                      marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100, ylim=(-0.2, 3.25)):
     """
-    Plot figure showing median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs tau (x-axis)
+    Plot figure showing median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs tau (x-axis)
     for (a) Gaussian pair copulas and (b) Joe & Clayton pair copulas (default).
 
     Parameters
@@ -1005,7 +1005,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
                      marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
                      show_percent_diff=True, thresh_for_timing_diff=(1.4, 0.2), ax=None):
     """
-    Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs time (x-axis).
+    Plot median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs time (x-axis).
 
     Parameters
     ----------
@@ -1038,7 +1038,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
         fig, ax = plt.subplots(1, 1, figsize=(5, 4))
     # List to hold DataFrames created below
     data_dfs = []
-    # For each copula, calculate total ice-sheet contribution for different years and plot
+    # For each copula, calculate total ice sheet contribution for different years and plot
     for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', '..'), ('--', '-.'), (3, 2)):
         # Specify pair copula families, rotations, and tau
         bicop1 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[:2]))
@@ -1052,7 +1052,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
         taus = (bicop1.tau, bicop2.tau)
         # Create DataFrame to hold percentile time series for this copula
         data_df = pd.DataFrame()
-        # For each year, calculate percentiles of total ice-sheet contribution
+        # For each year, calculate percentiles of total ice sheet contribution
         for year in marg_years:
             trivariate_df = sample_trivariate_distribution(families=families, rotations=rotations, taus=taus,
                                                            marg_workflow=marg_workflow, marg_scenario=marg_scenario,
@@ -1113,7 +1113,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     # Customize plot
     ax.set_xlim(marg_years[0], marg_years[-1])
     ax.set_xlabel('Year')
-    ax.set_ylabel(f'Total ice-sheet contribution, m')
+    ax.set_ylabel(f'Total ice sheet contribution, m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.MultipleLocator(1))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
@@ -1126,7 +1126,7 @@ def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L
                       marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
                       thresh_for_timing_diff=(1.4, 0.2), ylim=(-0.2, 2.3)):
     """
-    Plot figure showing median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs time (x-axis)
+    Plot figure showing median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs time (x-axis)
     for different copulas (in multiple panels).
 
     Parameters
@@ -1185,7 +1185,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
                                marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
                                ax=None):
     """
-    Plot median and 5th-95th percentile range of total ice-sheet contribution (y-axis) vs GrIS GRD fingerprint (x-axis).
+    Plot median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs GrIS GRD fingerprint (x-axis).
 
     Parameters
     ----------
@@ -1215,7 +1215,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     eais_fp = 1.10
     wais_fp = 1.15
     gris_fp_g = np.arange(-1.8, 1.21, 0.05)  # _g indicates GrIS fingerprint dimension
-    # For each copula, calculate total ice-sheet contribution for diff. GrIS fingerprints and plot median & 5th-95th
+    # For each copula, calculate total ice sheet contribution for diff. GrIS fingerprints and plot median & 5th-95th
     for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', '..'), ('--', '-.'), (3, 2)):
         # Specify pair copula families, rotations, and tau
         bicop1 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[:2]))
@@ -1233,7 +1233,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
                                               marg_year=marg_year)
         # Create DataFrame to hold percentile data across GrIS fingerprints
         data_df = pd.DataFrame()
-        # Loop over GrIS fingerprints and calculate 5th, 50th, and 95th percentiles of total ice-sheet contribution
+        # Loop over GrIS fingerprints and calculate 5th, 50th, and 95th percentiles of total ice sheet contribution
         for gris_fp in gris_fp_g:
             for perc in (5, 50, 95):
                 sum_ser = eais_fp * x_df['EAIS'] + wais_fp * x_df['WAIS'] + gris_fp * x_df['GrIS']
@@ -1249,11 +1249,11 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     ax.legend(loc='upper left', framealpha=1, fontsize='large')
     ax.set_xlim(gris_fp_g[0], gris_fp_g[-1])
     ax.set_xlabel('Fingerprint of GrIS')
-    ax.set_ylabel(f'Total ice-sheet contribution, m')
+    ax.set_ylabel(f'Total ice sheet contribution, m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(gris_fp_g))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
-    ax.set_title('Ice-sheet contribution to RSLC vs fingerprint of GrIS')
+    ax.set_title('Ice sheet contribution to RSLC vs fingerprint of GrIS')
     # Annotations
     ax.text(1, -0.15, f'Fingerprint of EAIS = {eais_fp:.2f}\nFingerprint of WAIS = {wais_fp:.2f}',
             transform=ax.transAxes, ha='right', va='bottom')
