@@ -854,7 +854,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
             annot_df.loc[workflow, 'Notes'] = ''
         tau_df.loc[workflow, 'Notes'] = 0.
     # Create Figure and Axes
-    fig, ax = plt.subplots(1, 1, figsize=(10, 1*len(cop_workflows)), tight_layout=True)
+    fig, ax = plt.subplots(1, 1, figsize=(9, 0.8*len(cop_workflows)), constrained_layout=True)
     # Plot heatmap
     sns.heatmap(tau_df, cmap='seismic', vmin=-1., vmax=1., annot=annot_df, fmt='', annot_kws={'weight': 'bold'},
                 linecolor='lightgrey', linewidths=1, ax=ax)
@@ -866,8 +866,6 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
     cbar = ax.collections[0].colorbar
     cbar.set_ticks([-1., 0., 1.])
     cbar.set_label(f'Kendall\'s {TAU_BOLD}')
-    if cop_workflows == ('wf_1e', 'wf_4', 'wf_3e', 'P21+L23'):
-        fig.suptitle('Bivariate copulas fitted to the workflow samples and ISM ensemble')
     return fig, ax
 
 
