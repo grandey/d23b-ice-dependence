@@ -679,6 +679,8 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     ax.set_ylabel('WAIS, m')
     ax.set_xlim(-0.15, 0.65)
     ax.set_xticks(np.arange(-0.1, 0.61, 0.1))
+    ax.set_ylim(-0.1, 0.4)
+    ax.set_yticks(np.arange(-0.1, 0.31, 0.1))
     # (b) Pseudo-copula data on copula scale
     ax = axs[1]
     x_n2 = np.stack([ism_df['EAIS'], ism_df['WAIS']], axis=1)
@@ -687,15 +689,13 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     sns.scatterplot(u_df, x='EAIS', y='WAIS', hue='Group', style='Group', legend=False, ax=ax)
     ax.set_title(f'(b) Pseudo-copula data')
     ax.set_xlabel('EAIS, unitless')
-    ax.set_ylabel('WAIS, unitless')
+    ax.set_ylabel('\nWAIS, unitless')
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])
     # Annotate with best-fit copula (limited to single-parameter families)
     bicop = quantify_bivariate_dependence(cop_workflow='P21+L23', components=('EAIS', 'WAIS'))
     ax.text(0.945, 0.06, f'Best fit: {bicop.str().split(",")[0]},\nwith {TAU_REG} = {bicop.tau:.2f}',
             fontsize='large', ha='right', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
-    # Main title
-    fig.suptitle('Antarctic ISM ensemble')
     return fig, axs
 
 
