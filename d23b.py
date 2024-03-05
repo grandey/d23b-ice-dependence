@@ -230,8 +230,8 @@ def read_ism_ensemble_data(ensemble='P21+L23', ref_year=2015, target_year=2100):
 @cache
 def read_gauge_info(gauge='TANJONG_PAGAR'):
     """
-    Read name, ID, latitude, and longitude of tide gauge, using location.lst in FACTS
-    (https://doi.org/10.5281/zenodo.7573653).
+    Read name, ID, latitude, and longitude of tide gauge, using location_list.lst.
+    (https://doi.org/10.5281/zenodo.6382554).
 
     Parameters
     ----------
@@ -244,8 +244,8 @@ def read_gauge_info(gauge='TANJONG_PAGAR'):
         Dictionary containing gauge_name, gauge_id, lat, lon.
     """
     # Read input file into DataFrame
-    in_dir = Path('data/radical-collaboration-facts-5086a75/input_files')
-    in_fn = in_dir / 'location.lst'
+    in_dir = Path('data')
+    in_fn = in_dir / 'location_list.lst'
     in_df = pd.read_csv(in_fn, sep='\t', names=['gauge_name', 'gauge_id', 'lat', 'lon'])
     # Get data for gauge of interest
     try:
