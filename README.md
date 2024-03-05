@@ -1,9 +1,9 @@
-# d23b-ice-dependence: Analysis code for _"Unknown Dependence Between Ice Sheets Contributes Ambiguity to Sea-level Projections"_
+# Analysis code for _Modelling Correlation Between the Ice Sheet Components of Sea-Level Rise_ (d23b-ice-dependence)
 
 ## Usage guidelines
 This repository accompanies the following manuscript:
 
-B. S. Grandey et al. (2023),  **Unknown Dependence Between Ice Sheets Contributes Ambiguity to Sea-level Projections**, _in preparation_.
+B. S. Grandey et al. (2024),  **Modelling Correlation Between the Ice Sheet Components of Sea-Level Rise**, _in preparation_.
 
 The manuscript serves as the primary reference.
 The Zenodo archive of this repository will serve as a secondary reference.
@@ -52,9 +52,8 @@ Analysis is performed using [**`analysis_d23b.ipynb`**](analysis_d23b.ipynb), wh
 This Research/Project is supported by the National Research Foundation, Singapore, and National Environment Agency, Singapore under the National Sea Level Programme Funding Initiative (Award No. USS-IF-2020-3).
 We thank the projection authors for developing and making the sea level rise projections available, multiple funding agencies for supporting the development of the projections, and the NASA Sea Level Change Team for developing and hosting the IPCC AR6 Sea Level Projection Tool.
 We thank the Climate and Cryosphere (CliC) effort, which provided support for ISMIP6 through sponsoring of workshops, hosting the ISMIP6 website and wiki, and promoted ISMIP6.
-We acknowledge the World Climate Research Programme, which, through it's Working Group on Coupled Modelling, coordinated and promoted CMIP5 and CMIP6.
+We acknowledge the World Climate Research Programme, which, through its Working Group on Coupled Modelling, coordinated and promoted CMIP5 and CMIP6.
 We thank the climate modeling groups for producing and making available their model output, the Earth System Grid Federation (ESGF) for archiving the CMIP data and providing access, the University at Buffalo for ISMIP6 data distribution and upload, and the multiple funding agencies who support CMIP5 and CMIP6 and ESGF.
 We thank the ISMIP6 steering committee, the ISMIP6 model selection group and ISMIP6 dataset preparation group for their continuous engagement in defining ISMIP6.
-We thank A. J. Payne et al. and D. Li et al. for publishing the data from their Antarctic ISM simulations.
-We thank R. E. Kopp and the FACTS developers for publishing FACTS and the FACTS module data.
-We thank Dhrubajyoti Samanta and Kristin Richter for helpful discussions.
+We thank Li et al. (2023) for publishing the data from their Antarctic ISM simulations.
+We thank Kopp et al. (2023) for publishing the FACTS module data.
