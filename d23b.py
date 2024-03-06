@@ -90,7 +90,7 @@ def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year
     component : str
         Component of GMSLR. Options are 'EAIS' (East Antarctic Ice Sheet, default),
         'WAIS' (West Antarctic Ice Sheet), 'GrIS' (Greenland Ice Sheet), and 'GMSLR' (total GMSLR).
-        Note: for ISMIP6, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
+        Note: for wf_1e, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
     scenario : str
         Options are 'ssp126' and 'ssp585' (default).
     year : int
@@ -335,7 +335,7 @@ def get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year
     component : str
         Component of GMSLR. Options are 'EAIS' (East Antarctic Ice Sheet, default),
         'WAIS' (West Antarctic Ice Sheet), 'GrIS' (Greenland Ice Sheet), and 'GMSLR' (total GMSLR).
-        Note: for ISMIP6, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
+        Note: for wf_1e, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
     scenario : str
         Options are 'ssp126' and 'ssp585' (default).
     year : int
@@ -393,9 +393,9 @@ def get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year
         w_da = get_fusion_weights()
         # Derive fusion distribution; rely on automatic broadcasting/alignment
         qf_da = w_da * pref_da + (1 - w_da) * outer_da
-        # Correct median (which is currently nan due to nan in outer_da)
-        med_idx = len(qf_da) // 2  # index corresponding to median
-        qf_da[med_idx] = pref_da[med_idx]  # median follows preferred workflow
+        # # No need to correct median (see Case 3 above)
+        # med_idx = len(qf_da) // 2  # index corresponding to median
+        # qf_da[med_idx] = pref_da[med_idx]  # median follows preferred workflow
     else:
         raise ValueError(f'Unrecognised parameter value: workflow={workflow}')
     # Plot?
