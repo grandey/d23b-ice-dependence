@@ -805,7 +805,7 @@ def fig_illustrate_copula():
         ax4.text(x, 0, s, ha='center', va='center', fontsize=25,
                  bbox=dict(boxstyle='square,pad=0.5', fc='azure', ec='blue'))
         ax4.imshow(plt.imread(temp_dir / f'temp_{s}.png'), extent=[x-0.8, x+0.8, 0.4, 1.2])
-    for i, x, s in zip(range(2), [-2, 2],
+    for i, x, s in zip(range(2), [-2.15, 2.15],
                        [f'{COMPONENTS[0]}–{COMPONENTS[1]}', f'{COMPONENTS[1]}–{COMPONENTS[2]}']):  # pair copulas
         ax4.text(x, -0.1, f'{s}\npair copula', ha='center', va='top', fontsize=18, color='g')
         ax4.imshow(plt.imread(temp_dir / f'temp_copula{i+2}.png'), extent=[x-0.9, x+0.9, 0, 1.8])
