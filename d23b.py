@@ -905,13 +905,13 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
     p95_t_list = []  # list to hold 95th percentile arrays
     for family, rotation, color, hatch, linestyle, linewidth in zip(families, rotations, colors,
                                                                     ('//', r'\\'), ('--', '-.'), (3, 2)):
-        families2 = (family, )*2
         label = family.name.capitalize()
         p50_t = np.full(len(tau_t), np.nan)  # array to hold median at each tau
         p5_t = np.full(len(tau_t), np.nan)  # 5th percentile
         p95_t = np.full(len(tau_t), np.nan)  # 95th percentile
         for t, tau in enumerate(tau_t):  # for each tau, calculate total ice sheet contribution
-            trivariate_df = sample_trivariate_distribution(families=families2, rotations=(rotation, )*2, taus=(tau, )*2,
+            trivariate_df = sample_trivariate_distribution(families=(family, )*2, rotations=(rotation, )*2,
+                                                           taus=(tau, )*2,
                                                            marg_workflow=marg_workflow, marg_scenario=marg_scenario,
                                                            marg_year=marg_year)
             sum_ser = trivariate_df.sum(axis=1)
@@ -1042,7 +1042,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
         try:
             bicop2 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[1:]))
         except KeyError:
-            print(f'No {COMPONENTS[1]}-{COMPONENTS[1]} dependence found for {cop_workflow}; using independence')
+            print(f'No {COMPONENTS[1]}-{COMPONENTS[2]} dependence found for {cop_workflow}; using independence')
             bicop2 = pv.Bicop(family=pv.BicopFamily.indep)
         families = (bicop1.family, bicop2.family)
         rotations = (bicop1.rotation, bicop2.rotation)
@@ -1082,6 +1082,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
                 percent_str = f'{percent_diff:+.1f} %'
             ax.text(year+2.5, np.mean([val1, val0]), percent_str,  # annotate with percentage diff
                     color='k', va='center', ha='left', fontsize='large')
+            print(f'{cop_workflows}, {perc}th: {val0:.1f} - {val1:.1f} = {diff:.1f} m ({percent_str})')  # print values
     # Plot lines showing timing differences?
     if thresh_for_timing_diff:
         # Select thresholds automatically?
@@ -1219,7 +1220,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
         try:
             bicop2 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[1:]))
         except KeyError:
-            print(f'No {COMPONENTS[1]}-{COMPONENTS[1]} dependence found for {cop_workflow}; using independence')
+            print(f'No {COMPONENTS[1]}-{COMPONENTS[2]} dependence found for {cop_workflow}; using independence')
             bicop2 = pv.Bicop(family=pv.BicopFamily.indep)
         families = (bicop1.family, bicop2.family)
         rotations = (bicop1.rotation, bicop2.rotation)
@@ -1232,8 +1233,8 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
         data_df = pd.DataFrame()
         # Loop over GrIS fingerprints and calculate 5th, 50th, and 95th percentiles of total ice sheet contribution
         for gris_fp in gris_fp_g:
+            sum_ser = eais_fp * x_df['EAIS'] + wais_fp * x_df['WAIS'] + gris_fp * x_df['GrIS']
             for perc in (5, 50, 95):
-                sum_ser = eais_fp * x_df['EAIS'] + wais_fp * x_df['WAIS'] + gris_fp * x_df['GrIS']
                 data_df.loc[gris_fp, perc] = np.percentile(sum_ser, perc)
         # Plot data for this copula
         label = WORKFLOW_LABELS[cop_workflow]
