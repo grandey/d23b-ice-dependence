@@ -48,13 +48,13 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    '0': 'Independence',  # idealized indepedence
                    '1': 'Perfect correlation',  # idealized perfect dependence
                    '10': f'Antarctic correlation',  # perfect dependence & independence
-                   '01': f'{COMPONENTS[1]}—{COMPONENTS[2]} perfect corr.',  # independence & perfect dependence
+                   '01': f'{COMPONENTS[1]}–{COMPONENTS[2]} perfect corr.',  # independence & perfect dependence
                    }
-WORKFLOW_NOTES = {'wf_1e': 'Shared dependence\non GMST\n(Edwards et al., 2021)',  # notes used by fig_dependence_table()
-                  'wf_4': 'Structured\nexpert judgment\n(Bamber et al., 2019)',
-                  'wf_3e': 'Antarctic ISM\nensemble\n(DeConto et al., 2021)',
-                  'P21+L23': 'Antarctic ISM\nensemble\n(Payne et al., 2021;\nLi et al., 2023)'
-                  }
+WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GMST;\nEdwards et al., 2021)',
+                  'wf_4': '$\\bf{Workflow\ 4}$\n(structured expert judgment;\nBamber et al., 2019)',
+                  'wf_3e': '$\\bf{Workflow\ 3}$\n(Antarctic ISM ensemble;\nDeConto et al., 2021)',
+                  'P21+L23': '$\\bf{P21\!+\!L23}$\n(Antarctic ISM ensemble;\nPayne et al., 2021; Li et al., 2023)'
+                  }  # WORKFLOW_NOTES is used by fig_dependence_table()
 WORKFLOW_COLORS = {'wf_1e': 'darkblue',  # colors used by ax_total_vs_time(), ax_sum_vs_gris_fingerprint()
                    'wf_4': 'darkgreen',
                    'wf_3e': 'darkred',
@@ -722,7 +722,6 @@ def fig_illustrate_copula():
     x_df = sample_trivariate_distribution(families=families, rotations=rotations, taus=taus,
                                           marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100)
     # 1st component plot: bivariate joint distribution (with marginals)
-    sns
     sns.set_style('ticks')
     g = sns.jointplot(x_df, x=COMPONENTS[0], y=COMPONENTS[1], kind='kde', cmap='Greens', fill=True,
                       levels=7, cut=0, marginal_ticks=False, marginal_kws={'bw_adjust': 0.3, 'color': 'b'},
@@ -832,40 +831,40 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
     axs : array of Axes
     """
     # Component combinations correspond to columns
-    columns = ['Notes',]
-    columns += [f'{COMPONENTS[i]}—{COMPONENTS[i+1]}' for i in range(2)]
-    columns.append(f'{COMPONENTS[0]}—{COMPONENTS[2]}')
+    columns = [f'{COMPONENTS[i]}–{COMPONENTS[i+1]}' for i in range(2)]
+    columns.append(f'{COMPONENTS[0]}–{COMPONENTS[2]}')
     # DataFrames to hold bivariate copula annotation string and Kendall's tau
     annot_df = pd.DataFrame(columns=columns, dtype=object)
     tau_df = pd.DataFrame(columns=columns, dtype=float)
     # Add data to DataFrames
     for workflow in cop_workflows:  # loop over workflows
-        for column in columns[1:]:  # loop over component combinations (ignoring Notes column)
+        for column in columns:
             try:  # quantify dependence
-                bicop = quantify_bivariate_dependence(cop_workflow=workflow, components=tuple(column.split('—')))
+                bicop = quantify_bivariate_dependence(cop_workflow=workflow, components=tuple(column.split('–')))
                 annot_df.loc[workflow, column] = f'{bicop.str().split(",")[0]},\n{TAU_BOLD} = {bicop.tau:.2f}'
                 tau_df.loc[workflow, column] = bicop.tau
             except KeyError:
                 annot_df.loc[workflow, column] = 'N/A'
                 tau_df.loc[workflow, column] = 0.  # set as zero not missing, so that annotations are not masked
-        try:
-            annot_df.loc[workflow, 'Notes'] = WORKFLOW_NOTES[workflow]  # include workflow notes in annotation DataFrame
-        except KeyError:
-            annot_df.loc[workflow, 'Notes'] = ''
-        tau_df.loc[workflow, 'Notes'] = 0.
     # Create Figure and Axes
     fig, ax = plt.subplots(1, 1, figsize=(9, 0.8*len(cop_workflows)), constrained_layout=True)
     # Plot heatmap
-    sns.heatmap(tau_df, cmap='seismic', vmin=-1., vmax=1., annot=annot_df, fmt='', annot_kws={'weight': 'bold'},
-                linecolor='lightgrey', linewidths=1, ax=ax)
+    sns.heatmap(tau_df, cmap='seismic', vmin=-1., vmax=1., annot=annot_df, fmt='',
+                annot_kws={'weight': 'bold', 'size': 'large'}, linecolor='lightgrey', linewidths=1, ax=ax)
     # Customise plot
-    ax.tick_params(top=False, bottom=False, left=False, right=False, labeltop=True, labelbottom=False, rotation=0)
-    ax.set_yticklabels([WORKFLOW_LABELS[workflow].removesuffix(" corr.") for workflow in cop_workflows])
-    for label in ax.get_xticklabels() + ax.get_yticklabels():
+    ax.tick_params(top=False, bottom=False, left=False, right=False,
+                   labeltop=True, labelbottom=False, labelleft=True, labelright=False, rotation=0)
+    try:
+        ax.set_yticklabels([WORKFLOW_NOTES[workflow] for workflow in cop_workflows], ha='center')
+        ax.tick_params(axis='y', pad=95)
+    except KeyError:
+        pass
+    for label in ax.get_xticklabels():
         label.set_fontweight('bold')
+        label.set_size('x-large')
     cbar = ax.collections[0].colorbar
     cbar.set_ticks([-1., 0., 1.])
-    cbar.set_label(f'Kendall\'s {TAU_BOLD}')
+    cbar.set_label(f'Kendall\'s {TAU_BOLD}', size='large')
     return fig, ax
 
 
