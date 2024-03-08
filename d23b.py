@@ -799,38 +799,38 @@ def fig_illustrate_copula():
     ax1 = fig.add_subplot(gs[0, 0])
     ax1.set_axis_off()
     ax1.imshow(plt.imread(temp_dir / 'temp_joint.png'))
-    ax1.annotate('Marginal\ndensity', xy=(0.6, 0.92), xytext=(0.95, 0.92),
-                 va='center', ha='center', xycoords='axes fraction', fontsize='large', color='b',
+    ax1.annotate('Marginal\ndensity', xy=(0.55, 0.90), xytext=(1.0, 0.92),
+                 va='center', ha='center', xycoords='axes fraction', fontsize='x-large', color='b',
                  arrowprops=dict(arrowstyle='->', ec='b'))
     ax1.annotate('Joint\ndensity', xy=(0.45, 0.55), xytext=(0.37, 0.75),
-                 va='center', ha='center', xycoords='axes fraction', fontsize='large', color='g',
+                 va='center', ha='center', xycoords='axes fraction', fontsize='x-large', color='g',
                  arrowprops=dict(arrowstyle='->', ec='g'))
-    ax1.set_title('(a) Bivariate distribution', fontsize='x-large')
+    ax1.set_title('(a) Bivariate distribution', fontsize='xx-large')
     # Probability integral transform arrow
     ax2 = fig.add_subplot(gs[0, 1])
     ax2.set_axis_off()
-    ax2.text(0.5, 0.65, 'Transform to the copula scale\n(via probability integral transform)',
-             ha='center', va='center',
+    ax2.text(0.5, 0.65, 'Transform to the\ncopula scale',
+             ha='center', va='center', fontsize='large', fontweight='bold',
              bbox=dict(boxstyle='rarrow,pad=0.5', fc='lavender', ec='purple'))
-    ax2.text(0.5, 0.35, 'Transform to the sea-level scale\n(with desired marginal distributions)',
-             ha='center', va='center',
+    ax2.text(0.5, 0.35, 'Transform to the\nsea-level scale',
+             ha='center', va='center', fontsize='large', fontweight='bold',
              bbox=dict(boxstyle='larrow,pad=0.5', fc='lavender', ec='purple'))
     # (b) Bivariate copula
     ax3 = fig.add_subplot(gs[0, 2])
     ax3.set_axis_off()
     ax3.imshow(plt.imread(temp_dir / 'temp_copula1.png'))
-    ax3.annotate('Uniform\nmarginal\ndensity', xy=(0.2, 0.92), xytext=(0, 0.92),
-                 va='center', ha='center', xycoords='axes fraction', fontsize='large', color='b',
+    ax3.annotate('Uniform\nmarginal\ndensity', xy=(0.23, 0.92), xytext=(-0.03, 0.92),
+                 va='center', ha='center', xycoords='axes fraction', fontsize='x-large', color='b',
                  arrowprops=dict(arrowstyle='->', ec='b'))
-    ax3.annotate('Copula\ndensity', xy=(0.45, 0.65), xytext=(0.33, 0.75),
-                 va='center', ha='center', xycoords='axes fraction', fontsize='large', color='g',
+    ax3.annotate('Copula\ndensity', xy=(0.45, 0.60), xytext=(0.35, 0.75),
+                 va='center', ha='center', xycoords='axes fraction', fontsize='x-large', color='g',
                  arrowprops=dict(arrowstyle='->', ec='g'))
-    ax3.set_title('(b) Bivariate copula', fontsize='x-large')
+    ax3.set_title('(b) Bivariate copula', fontsize='xx-large')
     # (c) Truncated D-vine copula
     ax4 = fig.add_subplot(gs[1, :])
     ax4.set_axis_off()
     ax4.set_xlim(-5, 5)  # specify coordinate system for arrangement of images and boxes
-    ax4.set_ylim(-1, 2)
+    ax4.set_ylim(-0.5, 2)
     ax4.plot([-4, 4], [0, 0], color='g')  # line connecting text boxes
     for i, x, s in zip(range(3), [-4.3, 0, 4.3], COMPONENTS):  # marginals
         ax4.text(x, 0, s, ha='center', va='center', fontsize=25,
@@ -840,7 +840,7 @@ def fig_illustrate_copula():
                        [f'{COMPONENTS[0]}–{COMPONENTS[1]}', f'{COMPONENTS[1]}–{COMPONENTS[2]}']):  # pair copulas
         ax4.text(x, -0.1, f'{s}\npair copula', ha='center', va='top', fontsize=18, color='g')
         ax4.imshow(plt.imread(temp_dir / f'temp_copula{i+2}.png'), extent=[x-0.9, x+0.9, 0, 1.8])
-    ax4.set_title('(c) Truncated vine copula', fontsize='x-large')
+    ax4.set_title('(c) Truncated vine copula', fontsize='xx-large', y=0.95)
     # Reset seaborn style
     sns.set_style(SNS_STYLE)
     return fig
