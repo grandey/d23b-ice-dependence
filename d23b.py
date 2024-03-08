@@ -490,6 +490,37 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
 
 
 @cache
+def quantify_trivariate_dependence(cop_workflow='wf_1e'):
+    """
+    Quantify dependence between the three ice sheet components by fitting a vine copula to the year-2100 SSP5-8.5 data.
+
+    Parameters
+    ----------
+    cop_workflow : str
+        AR6 workflow (e.g. 'wf_1e', default) to which to fit the bivariate copula.
+
+    Returns
+    -------
+    tricop : pv.Vinecop
+        Fitted vine copula (limited to single-parameter families).
+    """
+    # Read samples
+    samples_list = []
+    for component in COMPONENTS:
+        samples = read_ar6_samples(workflow=cop_workflow, component=component, scenario='ssp585', year=2100).data
+        samples_list.append(samples)
+    # Fit vine copula (limited to single-parameter families)
+    x_n3 = np.stack(samples_list, axis=1)
+    u_n3 = pv.to_pseudo_obs(x_n3)
+    controls = pv.FitControlsVinecop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
+                                                 pv.BicopFamily.gaussian, pv.BicopFamily.frank,
+                                                 pv.BicopFamily.clayton])
+    tricop = pv.Vinecop(data=u_n3, controls=controls)  # fit
+    # Return result
+    return tricop
+
+
+@cache
 def sample_dvine_copula(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotations=(0, 0), taus=(0.8, 0.5),
                         n_samples=20000, plot=False):
     """
