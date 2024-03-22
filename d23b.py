@@ -503,6 +503,10 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
     -------
     tricop : pv.Vinecop
         Fitted vine copula (limited to single-parameter families).
+
+    Notes
+    -----
+    The structure is specified according to the order of COMPONENTS.
     """
     # Read samples
     samples_list = []
@@ -512,10 +516,11 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
     # Fit vine copula (limited to single-parameter families)
     x_n3 = np.stack(samples_list, axis=1)
     u_n3 = pv.to_pseudo_obs(x_n3)
+    structure = pv.DVineStructure(order=(1, 2, 3))  # specify order of variables, rather than selecting as part of fit
     controls = pv.FitControlsVinecop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
                                                  pv.BicopFamily.gaussian, pv.BicopFamily.frank,
                                                  pv.BicopFamily.clayton])
-    tricop = pv.Vinecop(data=u_n3, controls=controls)  # fit
+    tricop = pv.Vinecop(data=u_n3, structure=structure, controls=controls)  # fit
     # Return result
     return tricop
 
