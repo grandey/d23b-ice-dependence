@@ -159,6 +159,10 @@ def read_ism_ensemble_data(ensemble='P21+L23', ref_year=2015, target_year=2100):
     -------
     ism_df : pandas DataFrame
         A DataFrame containing WAIS and EAIS sea-level equivalents (in m), Group (P21 or L23), and Notes.
+
+    Notes
+    -----
+    For convenience, a 'GrIS' column is included, populated with zeros.
     """
     # DataFrame to hold data
     ism_df = pd.DataFrame(columns=['WAIS', 'EAIS', 'Group', 'Notes'])
@@ -223,6 +227,8 @@ def read_ism_ensemble_data(ensemble='P21+L23', ref_year=2015, target_year=2100):
                     ais_dict[region_name] = in_df.loc[ref_year][in_varname] - in_df.loc[target_year][in_varname]
                 # Append to DataFrame
                 ism_df.loc[len(ism_df)] = ais_dict
+    # Add GrIS column for convenience
+    ism_df['GrIS'] = 0.
     # Return result
     return ism_df
 
@@ -497,7 +503,7 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
     Parameters
     ----------
     cop_workflow : str
-        AR6 workflow (e.g. 'wf_1e', default) to which to fit the bivariate copula.
+        AR6 workflow (e.g. 'wf_1e', default) or ISM ensemble (e.g. 'P21+L23') to which to fit copula.
 
     Returns
     -------
@@ -511,7 +517,10 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
     # Read samples
     samples_list = []
     for component in COMPONENTS:
-        samples = read_ar6_samples(workflow=cop_workflow, component=component, scenario='ssp585', year=2100).data
+        if 'wf' in cop_workflow:  # if workflow, read samples DataArray and extract data
+            samples = read_ar6_samples(workflow=cop_workflow, component=component, scenario='ssp585', year=2100).data
+        else:  # if ISM ensemble, read samples DataFrame and extract data
+            samples = read_ism_ensemble_data(ensemble=cop_workflow, ref_year=2015, target_year=2100)[component].values
         samples_list.append(samples)
     # Fit vine copula (limited to single-parameter families)
     x_n3 = np.stack(samples_list, axis=1)
@@ -869,21 +878,22 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
     # Component combinations correspond to columns
     columns = [f'{COMPONENTS[i]}–{COMPONENTS[i+1]}' for i in range(2)]
     columns.append(f'{COMPONENTS[0]}–{COMPONENTS[2]}')
+    columns.append(f'{COMPONENTS[0]}–{COMPONENTS[2]}|{COMPONENTS[1]}')
     # DataFrames to hold bivariate copula annotation string and Kendall's tau
     annot_df = pd.DataFrame(columns=columns, dtype=object)
     tau_df = pd.DataFrame(columns=columns, dtype=float)
     # Add data to DataFrames
     for workflow in cop_workflows:  # loop over workflows
         for column in columns:
-            try:  # quantify dependence
+            if column == f'{COMPONENTS[0]}–{COMPONENTS[2]}|{COMPONENTS[1]}':
+                tricop = quantify_trivariate_dependence(cop_workflow=workflow)
+                bicop = tricop.pair_copulas[1][0]  # pair copula in 2nd tree of fitted vine copula
+            else:
                 bicop = quantify_bivariate_dependence(cop_workflow=workflow, components=tuple(column.split('–')))
-                annot_df.loc[workflow, column] = f'{bicop.str().split(",")[0]},\n{TAU_BOLD} = {bicop.tau:.2f}'
-                tau_df.loc[workflow, column] = bicop.tau
-            except KeyError:
-                annot_df.loc[workflow, column] = 'N/A'
-                tau_df.loc[workflow, column] = 0.  # set as zero not missing, so that annotations are not masked
+            annot_df.loc[workflow, column] = f'{bicop.str().split(",")[0]},\n{TAU_BOLD} = {bicop.tau:.2f}'
+            tau_df.loc[workflow, column] = bicop.tau
     # Create Figure and Axes
-    fig, ax = plt.subplots(1, 1, figsize=(9, 0.8*len(cop_workflows)), constrained_layout=True)
+    fig, ax = plt.subplots(1, 1, figsize=(11, 0.8*len(cop_workflows)), constrained_layout=True)
     # Plot heatmap
     sns.heatmap(tau_df, cmap='seismic', vmin=-1., vmax=1., annot=annot_df, fmt='',
                 annot_kws={'weight': 'bold', 'size': 'large'}, linecolor='lightgrey', linewidths=1, ax=ax)
