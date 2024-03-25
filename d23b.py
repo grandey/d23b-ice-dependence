@@ -502,9 +502,9 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
 
     Parameters
     ----------
-    cop_workflow : str
+    cop_workflow : str or tuple
         AR6 workflow (e.g. 'wf_1e', default) or ISM ensemble (e.g. 'P21+L23') to which to fit copula,
-        or idealised case (e.g. '10').
+        or idealised case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)).
 
     Returns
     -------
@@ -516,7 +516,7 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
     The structure is specified according to the order of COMPONENTS.
     """
     # Case 1: idealised dependence by specifying a truncated vine copula
-    if cop_workflow in ('1', '0', '10', '01'):
+    if cop_workflow in ('1', '0', '10', '01') or type(cop_workflow) == tuple:
         if cop_workflow == '1':  # perfect dependence
             bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,]), ] * 2
         elif cop_workflow == '0':  # independence
@@ -525,9 +525,13 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
             bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,]), pv.Bicop(family=pv.BicopFamily.indep)]
         elif cop_workflow == '01':  # perfect dep. between 2nd & 3rd components
             bicops = [pv.Bicop(family=pv.BicopFamily.indep), pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])]
+        elif type(cop_workflow) == tuple:  # tuple of pair copula family and tau
+            family, tau = cop_workflow
+            parameters = pv.Bicop(family=family).tau_to_parameters(tau)
+            bicop = pv.Bicop(family=family, parameters=parameters)
+            bicops = [bicop, ] *2
         structure = pv.DVineStructure(order=(1, 2, 3), trunc_lvl=1)
         tricop = pv.Vinecop(structure, [bicops, ])
-    # TODO: idealised dependence with specified family and tau
     # Case 2: quantify dependence by fitting copula to samples
     else:
         # Read samples
