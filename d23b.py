@@ -557,6 +557,38 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
 
 
 @cache
+def sample_trivariate_copula(cop_workflow='wf_1e', n_samples=20000, plot=False):
+    """
+    Sample a vine copula returned by quantify_trivariate_dependence().
+
+    Parameters
+    ----------
+    cop_workflow : str or tuple
+        AR6 workflow (e.g. 'wf_1e', default) or ISM ensemble (e.g. 'P21+L23') to which to fit copula,
+        or idealised case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)).
+    n_samples : int
+        Number of samples to generate. Default is 20000.
+    plot : bool
+        Plot the simulated data? Default is False.
+
+    Returns
+    -------
+    u_n3 : np.array
+        An array of the simulated data, with shape (n_samples, 3).
+    """
+    # Get vine copula
+    tricop = quantify_trivariate_dependence(cop_workflow=cop_workflow)
+    # Simulate data
+    u_n3 = tricop.simulate(n=n_samples, seeds=[1, 2, 3, 4, 5])
+    # Plot?
+    if plot:
+        sns.pairplot(pd.DataFrame(u_n3, columns=[f'u{n+1}' for n in range(3)]), kind='hist')
+        plt.suptitle(f'{cop_workflow}\n{tricop.str()}', y=1.15)
+        plt.show()
+    return u_n3
+
+
+@cache
 def sample_dvine_copula(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotations=(0, 0), taus=(0.8, 0.5),
                         n_samples=20000, plot=False):
     """
