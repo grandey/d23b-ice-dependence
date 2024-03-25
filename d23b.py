@@ -503,7 +503,8 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
     Parameters
     ----------
     cop_workflow : str
-        AR6 workflow (e.g. 'wf_1e', default) or ISM ensemble (e.g. 'P21+L23') to which to fit copula.
+        AR6 workflow (e.g. 'wf_1e', default) or ISM ensemble (e.g. 'P21+L23') to which to fit copula,
+        or idealised case (e.g. '10').
 
     Returns
     -------
@@ -514,22 +515,39 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
     -----
     The structure is specified according to the order of COMPONENTS.
     """
-    # Read samples
-    samples_list = []
-    for component in COMPONENTS:
-        if 'wf' in cop_workflow:  # if workflow, read samples DataArray and extract data
-            samples = read_ar6_samples(workflow=cop_workflow, component=component, scenario='ssp585', year=2100).data
-        else:  # if ISM ensemble, read samples DataFrame and extract data
-            samples = read_ism_ensemble_data(ensemble=cop_workflow, ref_year=2015, target_year=2100)[component].values
-        samples_list.append(samples)
-    # Fit vine copula (limited to single-parameter families)
-    x_n3 = np.stack(samples_list, axis=1)
-    u_n3 = pv.to_pseudo_obs(x_n3)
-    structure = pv.DVineStructure(order=(1, 2, 3))  # specify order of variables, rather than selecting as part of fit
-    controls = pv.FitControlsVinecop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
-                                                 pv.BicopFamily.gaussian, pv.BicopFamily.frank,
-                                                 pv.BicopFamily.clayton])
-    tricop = pv.Vinecop(data=u_n3, structure=structure, controls=controls)  # fit
+    # Case 1: idealised dependence by specifying a truncated vine copula
+    if cop_workflow in ('1', '0', '10', '01'):
+        if cop_workflow == '1':  # perfect dependence
+            bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,]), ] * 2
+        elif cop_workflow == '0':  # independence
+            bicops = [pv.Bicop(family=pv.BicopFamily.indep), pv.Bicop(family=pv.BicopFamily.indep)]
+        elif cop_workflow == '10':  # perfect dep. between 1st & 2nd components
+            bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,]), pv.Bicop(family=pv.BicopFamily.indep)]
+        elif cop_workflow == '01':  # perfect dep. between 2nd & 3rd components
+            bicops = [pv.Bicop(family=pv.BicopFamily.indep), pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])]
+        structure = pv.DVineStructure(order=(1, 2, 3), trunc_lvl=1)
+        tricop = pv.Vinecop(structure, [bicops, ])
+    # TODO: idealised dependence with specified family and tau
+    # Case 2: quantify dependence by fitting copula to samples
+    else:
+        # Read samples
+        samples_list = []
+        for component in COMPONENTS:
+            if 'wf' in cop_workflow:  # if workflow, read samples DataArray and extract data
+                samples = read_ar6_samples(workflow=cop_workflow, component=component,
+                                           scenario='ssp585', year=2100).data
+            else:  # if ISM ensemble, read samples DataFrame and extract data
+                samples = read_ism_ensemble_data(ensemble=cop_workflow,
+                                                 ref_year=2015, target_year=2100)[component].values
+            samples_list.append(samples)
+        # Fit vine copula (limited to single-parameter families)
+        x_n3 = np.stack(samples_list, axis=1)
+        u_n3 = pv.to_pseudo_obs(x_n3)
+        structure = pv.DVineStructure(order=(1, 2, 3))  # specify order, rather than selecting as part of fit
+        controls = pv.FitControlsVinecop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
+                                                     pv.BicopFamily.gaussian, pv.BicopFamily.frank,
+                                                     pv.BicopFamily.clayton])
+        tricop = pv.Vinecop(data=u_n3, structure=structure, controls=controls)  # fit
     # Return result
     return tricop
 
@@ -887,7 +905,10 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
         for column in columns:
             if column == f'{COMPONENTS[0]}–{COMPONENTS[2]}|{COMPONENTS[1]}':
                 tricop = quantify_trivariate_dependence(cop_workflow=workflow)
-                bicop = tricop.pair_copulas[1][0]  # pair copula in 2nd tree of fitted vine copula
+                try:
+                    bicop = tricop.pair_copulas[1][0]  # pair copula in 2nd tree of fitted vine copula
+                except IndexError:  # if truncated vine copula, there will be no pair copula in the 2nd tree
+                    bicop = pv.Bicop(family=pv.BicopFamily.indep)
             else:
                 bicop = quantify_bivariate_dependence(cop_workflow=workflow, components=tuple(column.split('–')))
             annot_df.loc[workflow, column] = f'{bicop.str().split(",")[0]},\n{TAU_BOLD} = {bicop.tau:.2f}'
