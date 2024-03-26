@@ -532,7 +532,7 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
             bicops = [bicop, ] *2
         structure = pv.DVineStructure(order=(1, 2, 3), trunc_lvl=1)
         tricop = pv.Vinecop(structure, [bicops, ])
-    # Case 2: quantify dependence by fitting copula to samples
+    # Case 2: quantify dependence by fitting vine copula to samples
     else:
         # Read samples
         samples_list = []
@@ -564,7 +564,7 @@ def sample_trivariate_copula(cop_workflow='wf_1e', n_samples=20000, plot=False):
     Parameters
     ----------
     cop_workflow : str or tuple
-        AR6 workflow (e.g. 'wf_1e', default) or ISM ensemble (e.g. 'P21+L23') to which to fit copula,
+        AR6 workflow (e.g. 'wf_1e', default), ISM ensemble (e.g. 'P21+L23'),
         or idealised case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)).
     n_samples : int
         Number of samples to generate. Default is 20000.
@@ -589,59 +589,7 @@ def sample_trivariate_copula(cop_workflow='wf_1e', n_samples=20000, plot=False):
 
 
 @cache
-def sample_dvine_copula(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotations=(0, 0), taus=(0.8, 0.5),
-                        n_samples=20000, plot=False):
-    """
-    Sample truncated D-vine copula with given families, rotations, Kendall's tau values, and number of samples.
-
-    Parameters
-    ----------
-    families : tuple of pv.BicopFamily
-        Pair copula families. Default is (pv.BicopFamily.joe, pv.BicopFamily.clayton).
-    rotations : tuple of int
-        Pair copula rotations. Ignored for Independence, Gaussian, and Frank copulas. Default is (0, 0).
-    taus : tuple of float
-        Pair copula Kendall's tau values. Default is (0.8, 0.5).
-    n_samples : int
-        Number of samples to generate. Default is 20000.
-    plot : bool
-        Plot the simulated data? Default is False.
-
-    Returns
-    -------
-    u_nm : np.array
-        An array of the simulated data, with shape (n_samples, len(families)+1).
-    """
-    # Check that tau values are all floats
-    for tau in taus:
-        if type(tau) not in [float, np.float64, int]:
-            raise ValueError(f'tau={tau} is not a float.')
-    # Derive parameters and create bivariate pair copulas
-    bicops = []  # list to hold pair copulas
-    for family, rotation, tau in zip(families, rotations, taus):
-        parameters = pv.Bicop(family=family).tau_to_parameters(tau)
-        if family in (pv.BicopFamily.indep, pv.BicopFamily.gaussian, pv.BicopFamily.frank):  # ignore rotation
-            bicop = pv.Bicop(family=family, parameters=parameters)
-        else:
-            bicop = pv.Bicop(family=family, rotation=rotation, parameters=parameters)
-        bicops.append(bicop)
-    # Specify truncated D-vine structure
-    struc = pv.DVineStructure(np.arange(len(families)+1)+1, trunc_lvl=1)
-    # Create vine copula
-    cop = pv.Vinecop(struc, [bicops, ])
-    # Simulate data
-    u_nm = cop.simulate(n=n_samples, seeds=[1, 2, 3, 4, 5])
-    # Plot?
-    if plot:
-        sns.pairplot(pd.DataFrame(u_nm, columns=[f'u{n+1}' for n in range(len(families)+1)]), kind='hist')
-        plt.suptitle(f'{cop.str()}', y=1.05)
-        plt.show()
-    return u_nm
-
-
-@cache
-def sample_trivariate_distribution(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
-                                   rotations=(0, 0), taus=(0.8, 0.5),
+def sample_trivariate_distribution(cop_workflow='wf_1e',
                                    marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
                                    plot=False):
     """
@@ -649,12 +597,9 @@ def sample_trivariate_distribution(families=(pv.BicopFamily.joe, pv.BicopFamily.
 
     Parameters
     ----------
-    families : tuple of pv.BicopFamily
-        Pair copula families. Default is (pv.BicopFamily.joe, pv.BicopFamily.clayton).
-    rotations : tuple of int
-        Pair copula rotations. Ignored for Independence, Gaussian, and Frank copulas. Default is (0, 0).
-    taus : tuple of float
-        Pair copula Kendall's tau values. Default is (0.8, 0.5).
+    cop_workflow : str or tuple
+        AR6 workflow (e.g. 'wf_1e', default), ISM ensemble (e.g. 'P21+L23'),
+        or idealised case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)).
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
         corresponding to the component marginals.
@@ -683,7 +628,7 @@ def sample_trivariate_distribution(families=(pv.BicopFamily.joe, pv.BicopFamily.
     marg_n3 = np.stack(marginals, axis=1)  # marginal array with shape (n_samples, 3)
     n_samples = marg_n3.shape[0]
     # Sample copula
-    u_n3 = sample_dvine_copula(families=families, rotations=rotations, taus=taus, n_samples=n_samples)
+    u_n3 = sample_trivariate_copula(cop_workflow=cop_workflow, n_samples=n_samples)
     # Transform marginals of copula
     x_n3 = np.transpose(np.asarray([np.quantile(marg_n3[:, i], u_n3[:, i]) for i in range(3)]))
     # Convert to DataFrame
@@ -800,7 +745,7 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
 
 def fig_illustrate_copula():
     """
-    Plot figure illustrating (a) bivariate distribution, (b) bivariate copula, and (c) truncated D-vine copula.
+    Plot figure illustrating (a) bivariate distribution, (b) bivariate copula, and (c) vine copula.
 
     Returns
     -------
@@ -809,16 +754,12 @@ def fig_illustrate_copula():
     # Create folder to hold temporary component plots
     temp_dir = Path('temp')
     temp_dir.mkdir(exist_ok=True)
-    # Bivariate copulas to use
-    bicop1 = quantify_bivariate_dependence(cop_workflow='wf_4', components=tuple(COMPONENTS[:2]))
-    bicop2 = quantify_bivariate_dependence(cop_workflow='wf_4', components=tuple(COMPONENTS[1:]))
+    # Workflow to use for copula
+    cop_workflow = 'wf_4'
     # Sample corresponding vine copula and trivariate distribution
-    families = (bicop1.family, bicop2.family)
-    rotations = (bicop1.rotation, bicop2.rotation)
-    taus = (bicop1.tau, bicop2.tau)
-    u_nm = sample_dvine_copula(families=families, rotations=rotations, taus=taus, n_samples=20000)
+    u_nm = sample_trivariate_copula(cop_workflow=cop_workflow, n_samples=20000)
     u_df = pd.DataFrame(u_nm, columns=COMPONENTS)
-    x_df = sample_trivariate_distribution(families=families, rotations=rotations, taus=taus,
+    x_df = sample_trivariate_distribution(cop_workflow=cop_workflow,
                                           marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100)
     # 1st component plot: bivariate joint distribution (with marginals)
     sns.set_style('ticks')
@@ -894,7 +835,7 @@ def fig_illustrate_copula():
                  va='center', ha='center', xycoords='axes fraction', fontsize='x-large', color='g',
                  arrowprops=dict(arrowstyle='->', ec='g'))
     ax3.set_title('(b) Bivariate copula', fontsize='xx-large')
-    # (c) Truncated D-vine copula
+    # (c) Vine copula
     ax4 = fig.add_subplot(gs[1, :])
     ax4.set_axis_off()
     ax4.set_xlim(-5, 5)  # specify coordinate system for arrangement of images and boxes
@@ -908,7 +849,7 @@ def fig_illustrate_copula():
                        [f'{COMPONENTS[0]}–{COMPONENTS[1]}', f'{COMPONENTS[1]}–{COMPONENTS[2]}']):  # pair copulas
         ax4.text(x, -0.1, f'{s}\npair copula', ha='center', va='top', fontsize=18, color='g')
         ax4.imshow(plt.imread(temp_dir / f'temp_copula{i+2}.png'), extent=[x-0.9, x+0.9, 0, 1.8])
-    ax4.set_title('(c) Truncated vine copula', fontsize='xx-large', y=0.95)
+    ax4.set_title('(c) Vine copula', fontsize='xx-large', y=0.95)
     # Reset seaborn style
     sns.set_style(SNS_STYLE)
     return fig
@@ -971,7 +912,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
     return fig, ax
 
 
-def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotations=(0, 0), colors=('darkred', 'blue'),
+def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), colors=('darkred', 'blue'),
                     marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
                     ax=None):
     """
@@ -981,8 +922,6 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
     ----------
     families : tuple
         Pair copula families. Default is (pv.BicopFamily.joe, pv.BicopFamily.clayton).
-    rotations : tuple
-        Pair copula rotations. Default is (0, 0).
     colors : tuple
         Colors to use when plotting. Default is ('darkred', 'blue').
     marg_workflow : str
@@ -1006,15 +945,13 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), rotat
     # For each copula, calculate total ice sheet contribution for different tau values and plot median & 5th-95th
     tau_t = np.linspace(0, 1, 51)  # tau values to use
     p95_t_list = []  # list to hold 95th percentile arrays
-    for family, rotation, color, hatch, linestyle, linewidth in zip(families, rotations, colors,
-                                                                    ('//', r'\\'), ('--', '-.'), (3, 2)):
+    for family, color, hatch, linestyle, linewidth in zip(families, colors, ('//', r'\\'), ('--', '-.'), (3, 2)):
         label = family.name.capitalize()
         p50_t = np.full(len(tau_t), np.nan)  # array to hold median at each tau
         p5_t = np.full(len(tau_t), np.nan)  # 5th percentile
         p95_t = np.full(len(tau_t), np.nan)  # 95th percentile
         for t, tau in enumerate(tau_t):  # for each tau, calculate total ice sheet contribution
-            trivariate_df = sample_trivariate_distribution(families=(family, )*2, rotations=(rotation, )*2,
-                                                           taus=(tau, )*2,
+            trivariate_df = sample_trivariate_distribution(cop_workflow=(family, tau),
                                                            marg_workflow=marg_workflow, marg_scenario=marg_scenario,
                                                            marg_year=marg_year)
             sum_ser = trivariate_df.sum(axis=1)
@@ -1088,12 +1025,12 @@ def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.Bico
     fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharey=True, constrained_layout=True)
     # (a)
     ax = axs[0]
-    _ = ax_total_vs_tau(families=families_a, rotations=(0, 0), colors=colors_a,
+    _ = ax_total_vs_tau(families=families_a, colors=colors_a,
                         marg_workflow=marg_workflow, marg_scenario=marg_scenario, marg_year=marg_year, ax=ax)
     ax.set_title(f'(a) {" & ".join(f.name.capitalize() for f in families_a)} pair copulas')
     # (b)
     ax = axs[1]
-    _ = ax_total_vs_tau(families=families_b, rotations=(0, 0), colors=colors_b,
+    _ = ax_total_vs_tau(families=families_b, colors=colors_b,
                         marg_workflow=marg_workflow, marg_scenario=marg_scenario, marg_year=marg_year, ax=ax)
     ax.set_title(f'(b) {" & ".join(f.name.capitalize() for f in families_b)} pair copulas')
     ax.set_ylabel(None)
@@ -1110,8 +1047,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     Parameters
     ----------
     cop_workflows : tuple of str
-        AR6 workflow (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), independence ('0'),
-        or perfect dependence between two components (e.g. '10') corresponding to the vine copula to be used.
+        AR6 workflows (e.g. 'wf_1e'), ice sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
         Default is ('wf_3e', '0').
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
@@ -1140,21 +1076,11 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     data_dfs = []
     # For each copula, calculate total ice sheet contribution for different years and plot
     for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', '..'), ('--', '-.'), (3, 2)):
-        # Specify pair copula families, rotations, and tau
-        bicop1 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[:2]))
-        try:
-            bicop2 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[1:]))
-        except KeyError:
-            print(f'No {COMPONENTS[1]}-{COMPONENTS[2]} dependence found for {cop_workflow}; using independence')
-            bicop2 = pv.Bicop(family=pv.BicopFamily.indep)
-        families = (bicop1.family, bicop2.family)
-        rotations = (bicop1.rotation, bicop2.rotation)
-        taus = (bicop1.tau, bicop2.tau)
         # Create DataFrame to hold percentile time series for this copula
         data_df = pd.DataFrame()
         # For each year, calculate percentiles of total ice sheet contribution
         for year in marg_years:
-            trivariate_df = sample_trivariate_distribution(families=families, rotations=rotations, taus=taus,
+            trivariate_df = sample_trivariate_distribution(cop_workflow=cop_workflow,
                                                            marg_workflow=marg_workflow, marg_scenario=marg_scenario,
                                                            marg_year=year)
             sum_ser = trivariate_df.sum(axis=1)
@@ -1233,8 +1159,7 @@ def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L
     Parameters
     ----------
     cop_workflows : tuple of str
-        AR6 workflows (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), independence ('0'),
-        or perfect dependence between two components (e.g. '10') corresponding to the vine copula to be used.
+        AR6 workflows (e.g. 'wf_1e'), ice sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
         Note, these will be plotted in separate panels. Default is ('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L23').
     ref_workflows : tuple of str
         Workflows corresponding to the vine copulas to be used as the reference in each panel.
@@ -1291,8 +1216,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     Parameters
     ----------
     cop_workflows : tuple of str
-        AR6 workflow (e.g. 'wf_1e'), ISM ensemble (e.g. 'P21+L23), perfect dependence ('1'), independence ('0'),
-        or perfect dependence between two components (e.g. '10') corresponding to the vine copula to be used.
+        AR6 workflows (e.g. 'wf_1e'), ice sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
         Default is ('1', '0').
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
@@ -1318,18 +1242,8 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     gris_fp_g = np.arange(-1.8, 1.21, 0.05)  # _g indicates GrIS fingerprint dimension
     # For each copula, calculate total ice sheet contribution for diff. GrIS fingerprints and plot median & 5th-95th
     for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', '..'), ('--', '-.'), (3, 2)):
-        # Specify pair copula families, rotations, and tau
-        bicop1 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[:2]))
-        try:
-            bicop2 = quantify_bivariate_dependence(cop_workflow=cop_workflow, components=tuple(COMPONENTS[1:]))
-        except KeyError:
-            print(f'No {COMPONENTS[1]}-{COMPONENTS[2]} dependence found for {cop_workflow}; using independence')
-            bicop2 = pv.Bicop(family=pv.BicopFamily.indep)
-        families = (bicop1.family, bicop2.family)
-        rotations = (bicop1.rotation, bicop2.rotation)
-        taus = (bicop1.tau, bicop2.tau)
         # Get trivariate distribution data for global mean (ie fingerprints all 1.0)
-        x_df = sample_trivariate_distribution(families=families, rotations=rotations, taus=taus,
+        x_df = sample_trivariate_distribution(cop_workflow=cop_workflow,
                                               marg_workflow=marg_workflow, marg_scenario=marg_scenario,
                                               marg_year=marg_year)
         # Create DataFrame to hold percentile data across GrIS fingerprints
