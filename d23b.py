@@ -47,7 +47,7 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    'P21+L23': 'P21+L23 ensemble corr.',
                    '0': 'Independence',  # idealized indepedence
                    '1': 'Perfect correlation',  # idealized perfect dependence
-                   '10': f'Antarctic correlation',  # perfect dependence & independence
+                   '10': 'Antarctic correlation',  # perfect dependence & independence
                    '01': f'{COMPONENTS[1]}–{COMPONENTS[2]} perfect corr.',  # independence & perfect dependence
                    }
 WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GMST;\nEdwards et al., 2021)',
@@ -158,14 +158,14 @@ def read_ism_ensemble_data(ensemble='P21+L23', ref_year=2015, target_year=2100):
     Returns
     -------
     ism_df : pandas DataFrame
-        A DataFrame containing WAIS and EAIS sea-level equivalents (in m), Group (P21 or L23), and Notes.
+        A DataFrame containing EAIS and WAIS sea-level equivalents (in m), Group (P21 or L23), and Notes.
 
     Notes
     -----
-    For convenience, a 'GrIS' column is included, populated with zeros.
+    For convenience, a 'GrIS' column is included, populated with zeros. This enables fitting of a vine copula.
     """
     # DataFrame to hold data
-    ism_df = pd.DataFrame(columns=['WAIS', 'EAIS', 'Group', 'Notes'])
+    ism_df = pd.DataFrame(columns=['EAIS', 'WAIS', 'Group', 'Notes'])
     # Read Payne et al. data
     if 'P21' in ensemble:
         # Location of data
@@ -192,10 +192,10 @@ def read_ism_ensemble_data(ensemble='P21+L23', ref_year=2015, target_year=2100):
                 ais_dict['Notes'] = f'{exp}_' + '_'.join(in_fn.name.split('_')[-3:-1])
                 # Read DataSet
                 in_ds = xr.load_dataset(in_fn)
-                # Calculate SLE for target year relative to reference year for WAIS and EAIS; remember sign
-                wais_da = in_ds[f'limnsw_region_{1}'] + in_ds[f'limnsw_region_{3}']  # include peninsula in WAIS
+                # Calculate SLE for target year relative to reference year for EAIS and WAIS; remember sign
                 eais_da = in_ds[f'limnsw_region_{2}']
-                for region_name, in_da in [('WAIS', wais_da), ('EAIS', eais_da)]:
+                wais_da = in_ds[f'limnsw_region_{1}'] + in_ds[f'limnsw_region_{3}']  # include peninsula in WAIS
+                for region_name, in_da in [('EAIS', eais_da), ('WAIS', wais_da)]:
                     if ref_year == 2015:
                         ais_dict[region_name] = -1. * float(in_da.sel(time=target_year)) * convert_Gt_m
                     else:
@@ -223,11 +223,11 @@ def read_ism_ensemble_data(ensemble='P21+L23', ref_year=2015, target_year=2100):
                 except ValueError:
                     in_df = pd.read_fwf(in_fn, skiprows=2, index_col='time')
                 # Get SLE for target year relative to reference year for WAIS and EAIS; remember sign
-                for region_name, in_varname in [('WAIS', 'eofw(m)'), ('EAIS', 'eofe(m)')]:
+                for region_name, in_varname in [ ('EAIS', 'eofe(m)'), ('WAIS', 'eofw(m)')]:
                     ais_dict[region_name] = in_df.loc[ref_year][in_varname] - in_df.loc[target_year][in_varname]
                 # Append to DataFrame
                 ism_df.loc[len(ism_df)] = ais_dict
-    # Add GrIS column for convenience
+    # Add GrIS column for convenience, enabling fitting of vine copula below, with GrIS independent of EAIS and WAIS
     ism_df['GrIS'] = 0.
     # Return result
     return ism_df
@@ -462,7 +462,7 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
     # Check that two and only two components have been specified
     if len(components) != 2:
         raise ValueError(f'Unrecognized argument value: components={components}. Length should be 2.')
-    # Case 1: idealised dependence by specifying the copula
+    # Case 1: specify idealised dependence by specifying the copula
     if cop_workflow in ('0', '1', '10', '01'):
         if cop_workflow == '1':  # perfect dependence
             bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])
@@ -520,7 +520,7 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
         if cop_workflow == '1':  # perfect dependence
             bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,]), ] * 2
         elif cop_workflow == '0':  # independence
-            bicops = [pv.Bicop(family=pv.BicopFamily.indep), pv.Bicop(family=pv.BicopFamily.indep)]
+            bicops = [pv.Bicop(family=pv.BicopFamily.indep), ] * 2
         elif cop_workflow == '10':  # perfect dep. between 1st & 2nd components
             bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,]), pv.Bicop(family=pv.BicopFamily.indep)]
         elif cop_workflow == '01':  # perfect dep. between 2nd & 3rd components
@@ -529,7 +529,7 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
             family, tau = cop_workflow
             parameters = pv.Bicop(family=family).tau_to_parameters(tau)
             bicop = pv.Bicop(family=family, parameters=parameters)
-            bicops = [bicop, ] *2
+            bicops = [bicop, ] * 2
         structure = pv.DVineStructure(order=(1, 2, 3), trunc_lvl=1)
         tricop = pv.Vinecop(structure, [bicops, ])
     # Case 2: quantify dependence by fitting vine copula to samples
@@ -599,7 +599,7 @@ def sample_trivariate_distribution(cop_workflow='wf_1e',
     ----------
     cop_workflow : str or tuple
         AR6 workflow (e.g. 'wf_1e', default), ISM ensemble (e.g. 'P21+L23'),
-        or idealised case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)).
+        or idealised case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)), corresponding to the vine copula.
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
         corresponding to the component marginals.
@@ -1105,7 +1105,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
             percent_diff = 100. * diff / val1  # percentage difference
             ax.arrow(year+1, val1, 0., diff,  # plot arrow showing diff
                      color='k', head_width=1.5, head_length=0.02, length_includes_head=True, clip_on=False)
-            if abs(percent_diff) > 0.5:  # format percentage diff as string
+            if abs(percent_diff) > 0.95:  # format percentage diff as string, to nearest percent if >~1%
                 percent_str = f'{percent_diff:+.0f} %'
             else:
                 percent_str = f'{percent_diff:+.1f} %'
@@ -1240,7 +1240,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     eais_fp = 1.10
     wais_fp = 1.15
     gris_fp_g = np.arange(-1.8, 1.21, 0.05)  # _g indicates GrIS fingerprint dimension
-    # For each copula, calculate total ice sheet contribution for diff. GrIS fingerprints and plot median & 5th-95th
+    # For each copula, calculate total ice sheet contribution for different GrIS fingerprints and plot median & 5th-95th
     for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', '..'), ('--', '-.'), (3, 2)):
         # Get trivariate distribution data for global mean (ie fingerprints all 1.0)
         x_df = sample_trivariate_distribution(cop_workflow=cop_workflow,
