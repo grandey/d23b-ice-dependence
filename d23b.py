@@ -53,7 +53,10 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
 WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GMST;\nEdwards et al., 2021)',
                   'wf_4': '$\\bf{Workflow\ 4}$\n(structured expert judgment;\nBamber et al., 2019)',
                   'wf_3e': '$\\bf{Workflow\ 3}$\n(Antarctic ISM ensemble;\nDeConto et al., 2021)',
-                  'P21+L23': '$\\bf{P21\!+\!L23}$\n(Antarctic ISM ensemble;\nPayne et al., 2021; Li et al., 2023)'
+                  'P21+L23': '$\\bf{P21\!+\!L23}$\n(Antarctic ISM ensemble;\nPayne et al., 2021; Li et al., 2023)',
+                  '0': '$\\bf{Independence}$',
+                  '1': '$\\bf{Perfect\ correlation}$',
+                  '10': '$\\bf{Antarctic\ correlation}$',
                   }  # WORKFLOW_NOTES is used by fig_dependence_table()
 WORKFLOW_COLORS = {'wf_1e': 'darkblue',  # colors used by ax_total_vs_time(), ax_sum_vs_gris_fingerprint()
                    'wf_4': 'darkgreen',
