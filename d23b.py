@@ -858,7 +858,7 @@ def fig_illustrate_copula():
     return fig
 
 
-def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23'), all_pairs=True):
+def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23', '0', '1', '10'), all_pairs=True):
     """
     Plot heatmap table of bivariate copulas for AR6 workflows and ISM ensemble.
 
@@ -866,7 +866,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23'), al
     ----------
     cop_workflows : tuple of str
         AR6 workflows (e.g. 'wf_1e'), ice sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
-        Default is ('wf_1e', 'wf_4', 'wf_3e', 'P21+L23').
+        Default is ('wf_1e', 'wf_4', 'wf_3e', 'P21+L23', '0', '1', '10').
     all_pairs : bool
         If True (default), include all pairs of dependencies.
 
@@ -876,26 +876,28 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23'), al
     axs : array of Axes
     """
     # Component combinations correspond to columns
-    columns = [f'{COMPONENTS[i]}–{COMPONENTS[i+1]}' for i in range(2)]
+    columns = [f'{COMPONENTS[i]}–{COMPONENTS[i+1]}\n(tree 1)' for i in range(2)]
     if all_pairs:
-        columns.append(f'{COMPONENTS[0]}–{COMPONENTS[2]}')
-    columns.append(f'{COMPONENTS[0]}–{COMPONENTS[2]}|{COMPONENTS[1]}')
+        columns.append(f'{COMPONENTS[0]}–{COMPONENTS[2]}\n(not used)')
+    columns.append(f'{COMPONENTS[0]}–{COMPONENTS[2]}|{COMPONENTS[1]}\n(tree 2)')
     # DataFrames to hold bivariate copula annotation string and Kendall's tau
-    annot_df = pd.DataFrame(columns=columns, dtype=object)
-    tau_df = pd.DataFrame(columns=columns, dtype=float)
+    annot_df = pd.DataFrame(dtype=object)
+    tau_df = pd.DataFrame(dtype=float)
     # Add data to DataFrames
     for workflow in cop_workflows:  # loop over workflows
         for column in columns:
-            if column == f'{COMPONENTS[0]}–{COMPONENTS[2]}|{COMPONENTS[1]}':
+            if f'{COMPONENTS[0]}–{COMPONENTS[2]}|{COMPONENTS[1]}' in column:
                 tricop = quantify_trivariate_dependence(cop_workflow=workflow)
                 try:
                     bicop = tricop.pair_copulas[1][0]  # pair copula in 2nd tree of fitted vine copula
                 except IndexError:  # if truncated vine copula, there will be no pair copula in the 2nd tree
                     bicop = pv.Bicop(family=pv.BicopFamily.indep)
             else:
-                bicop = quantify_bivariate_dependence(cop_workflow=workflow, components=tuple(column.split('–')))
-            annot_df.loc[workflow, column] = f'{bicop.str().split(",")[0]},\n{TAU_BOLD} = {bicop.tau:.2f}'
-            tau_df.loc[workflow, column] = bicop.tau
+                components = tuple(column.split('\n')[0].split('–'))
+                bicop = quantify_bivariate_dependence(cop_workflow=workflow, components=components)
+            column_formatted = '$\\bf{'+column.split('\n')[0]+'}$\n'+column.split('\n')[1]  # make first part bold
+            annot_df.loc[workflow, column_formatted] = f'{bicop.str().split(",")[0]},\n{TAU_BOLD} = {bicop.tau:.2f}'
+            tau_df.loc[workflow, column_formatted] = bicop.tau
     # Create Figure and Axes
     if all_pairs:
         width = 11
@@ -913,9 +915,6 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23'), al
         ax.tick_params(axis='y', pad=95)
     except KeyError:
         pass
-    for label in ax.get_xticklabels():
-        label.set_fontweight('bold')
-        label.set_size('x-large')
     cbar = ax.collections[0].colorbar
     cbar.set_ticks([-1., 0., 1.])
     cbar.set_label(f'Kendall\'s {TAU_BOLD}', size='large')
