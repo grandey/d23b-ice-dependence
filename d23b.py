@@ -858,7 +858,7 @@ def fig_illustrate_copula():
     return fig
 
 
-def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
+def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23'), all_pairs=True):
     """
     Plot heatmap table of bivariate copulas for AR6 workflows and ISM ensemble.
 
@@ -867,6 +867,8 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
     cop_workflows : tuple of str
         AR6 workflows (e.g. 'wf_1e'), ice sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
         Default is ('wf_1e', 'wf_4', 'wf_3e', 'P21+L23').
+    all_pairs : bool
+        If True (default), include all pairs of dependencies.
 
     Returns
     -------
@@ -875,7 +877,8 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
     """
     # Component combinations correspond to columns
     columns = [f'{COMPONENTS[i]}–{COMPONENTS[i+1]}' for i in range(2)]
-    columns.append(f'{COMPONENTS[0]}–{COMPONENTS[2]}')
+    if all_pairs:
+        columns.append(f'{COMPONENTS[0]}–{COMPONENTS[2]}')
     columns.append(f'{COMPONENTS[0]}–{COMPONENTS[2]}|{COMPONENTS[1]}')
     # DataFrames to hold bivariate copula annotation string and Kendall's tau
     annot_df = pd.DataFrame(columns=columns, dtype=object)
@@ -894,7 +897,11 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23')):
             annot_df.loc[workflow, column] = f'{bicop.str().split(",")[0]},\n{TAU_BOLD} = {bicop.tau:.2f}'
             tau_df.loc[workflow, column] = bicop.tau
     # Create Figure and Axes
-    fig, ax = plt.subplots(1, 1, figsize=(11, 0.8*len(cop_workflows)), constrained_layout=True)
+    if all_pairs:
+        width = 11
+    else:
+        width = 9.5
+    fig, ax = plt.subplots(1, 1, figsize=(width, 0.8*len(cop_workflows)), constrained_layout=True)
     # Plot heatmap
     sns.heatmap(tau_df, cmap='seismic', vmin=-1., vmax=1., annot=annot_df, fmt='',
                 annot_kws={'weight': 'bold', 'size': 'large'}, linecolor='lightgrey', linewidths=1, ax=ax)
