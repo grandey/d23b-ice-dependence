@@ -858,7 +858,8 @@ def fig_illustrate_copula():
     return fig
 
 
-def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23', '0', '1', '10'), all_pairs=True):
+def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23', '0', '1', '10'),
+                         all_pairs=True, print_tricop=True):
     """
     Plot heatmap table of bivariate copulas for AR6 workflows and ISM ensemble.
 
@@ -869,6 +870,8 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23', '0'
         Default is ('wf_1e', 'wf_4', 'wf_3e', 'P21+L23', '0', '1', '10').
     all_pairs : bool
         If True (default), include all pairs of dependencies.
+    print_tricop : bool
+        If True (default), print the corresponding trivariate vine copula, to check for conistency with table.
 
     Returns
     -------
@@ -888,6 +891,8 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23', '0'
         for column in columns:
             if f'{COMPONENTS[0]}–{COMPONENTS[2]}|{COMPONENTS[1]}' in column:
                 tricop = quantify_trivariate_dependence(cop_workflow=workflow)
+                if print_tricop:
+                    print(f'{WORKFLOW_LABELS[workflow]}:\n{tricop.str()} {tricop.taus}\n')
                 try:
                     bicop = tricop.pair_copulas[1][0]  # pair copula in 2nd tree of fitted vine copula
                 except IndexError:  # if truncated vine copula, there will be no pair copula in the 2nd tree
