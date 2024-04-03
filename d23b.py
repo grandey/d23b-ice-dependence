@@ -54,9 +54,9 @@ WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GMST;\nE
                   'wf_4': '$\\bf{Workflow\ 4}$\n(structured expert judgment;\nBamber et al., 2019)',
                   'wf_3e': '$\\bf{Workflow\ 3}$\n(Antarctic ISM ensemble;\nDeConto et al., 2021)',
                   'P21+L23': '$\\bf{P21\!+\!L23}$\n(Antarctic ISM ensemble;\nPayne et al., 2021; Li et al., 2023)',
-                  '0': '$\\bf{Independence}$',
-                  '1': '$\\bf{Perfect\ correlation}$',
-                  '10': '$\\bf{Antarctic\ correlation}$',
+                  '0': '$\\bf{Independence}$\n(idealized)',
+                  '1': '$\\bf{Perfect\ correlation}$\n(idealized)',
+                  '10': '$\\bf{Antarctic\ correlation}$\n(idealized)',
                   }  # WORKFLOW_NOTES is used by fig_dependence_table()
 WORKFLOW_COLORS = {'wf_1e': 'darkblue',  # colors used by ax_total_vs_time(), ax_sum_vs_gris_fingerprint()
                    'wf_4': 'darkgreen',
@@ -465,7 +465,7 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
     # Check that two and only two components have been specified
     if len(components) != 2:
         raise ValueError(f'Unrecognized argument value: components={components}. Length should be 2.')
-    # Case 1: specify idealised dependence by specifying the copula
+    # Case 1: specify idealized dependence by specifying the copula
     if cop_workflow in ('0', '1', '10', '01'):
         if cop_workflow == '1':  # perfect dependence
             bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])
@@ -507,7 +507,7 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
     ----------
     cop_workflow : str or tuple
         AR6 workflow (e.g. 'wf_1e', default) or ISM ensemble (e.g. 'P21+L23') to which to fit copula,
-        or idealised case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)).
+        or idealized case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)).
 
     Returns
     -------
@@ -518,7 +518,7 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
     -----
     The structure is specified according to the order of COMPONENTS.
     """
-    # Case 1: idealised dependence by specifying a truncated vine copula
+    # Case 1: idealized dependence by specifying a truncated vine copula
     if cop_workflow in ('1', '0', '10', '01') or type(cop_workflow) == tuple:
         if cop_workflow == '1':  # perfect dependence
             bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,]), ] * 2
@@ -568,7 +568,7 @@ def sample_trivariate_copula(cop_workflow='wf_1e', n_samples=20000, plot=False):
     ----------
     cop_workflow : str or tuple
         AR6 workflow (e.g. 'wf_1e', default), ISM ensemble (e.g. 'P21+L23'),
-        or idealised case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)).
+        or idealized case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)).
     n_samples : int
         Number of samples to generate. Default is 20000.
     plot : bool
@@ -602,7 +602,7 @@ def sample_trivariate_distribution(cop_workflow='wf_1e',
     ----------
     cop_workflow : str or tuple
         AR6 workflow (e.g. 'wf_1e', default), ISM ensemble (e.g. 'P21+L23'),
-        or idealised case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)), corresponding to the vine copula.
+        or idealized case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)), corresponding to the vine copula.
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound (e.g. 'outer'), or fusion (e.g. 'fusion_1e', default),
         corresponding to the component marginals.
