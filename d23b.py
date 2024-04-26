@@ -50,7 +50,7 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    '10': 'Antarctic correlation',  # perfect dependence & independence
                    '01': f'{COMPONENTS[1]}–{COMPONENTS[2]} perfect corr.',  # independence & perfect dependence
                    }
-WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GMST;\nEdwards et al., 2021)',
+WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GSAT;\nEdwards et al., 2021)',
                   'wf_4': '$\\bf{Workflow\ 4}$\n(structured expert judgment;\nBamber et al., 2019)',
                   'wf_3e': '$\\bf{Workflow\ 3}$\n(Antarctic ISM ensemble;\nDeConto et al., 2021)',
                   'P21+L23': '$\\bf{P21\!+\!L23}$\n(Antarctic ISM ensemble;\nPayne et al., 2021; Li et al., 2023)',
