@@ -858,7 +858,7 @@ def fig_illustrate_copula():
     return fig
 
 
-def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23', '0', '1', '10'),
+def fig_dependence_table(cop_workflows=('0', '1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L23'),
                          all_pairs=True, print_tricop=True):
     """
     Plot heatmap table of bivariate copulas for AR6 workflows and ISM ensemble.
@@ -867,7 +867,7 @@ def fig_dependence_table(cop_workflows=('wf_1e', 'wf_4', 'wf_3e', 'P21+L23', '0'
     ----------
     cop_workflows : tuple of str
         AR6 workflows (e.g. 'wf_1e'), ice sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
-        Default is ('wf_1e', 'wf_4', 'wf_3e', 'P21+L23', '0', '1', '10').
+        Default is ('0', '1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L23').
     all_pairs : bool
         If True (default), include all pairs of dependencies.
     print_tricop : bool
