@@ -719,8 +719,7 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
     ax = axs[0]
     sns.scatterplot(ism_df, x='EAIS', y='WAIS', hue='Group', style='Group', ax=ax)
-    ax.legend(loc='lower right', fontsize='large', framealpha=1,
-              edgecolor='0.85')  # specify edgecolor consistent with box in (b)
+    ax.legend(loc='lower right', fontsize='large', framealpha=1, edgecolor='0.85')  # edgecolor consistent with (b)
     ax.set_title(f'(a) Sea-level equivalent data')
     ax.set_xlabel('EAIS, m')
     ax.set_ylabel('WAIS, m')
@@ -740,9 +739,12 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])
     # Annotate with best-fit copula (limited to single-parameter families)
-    bicop = quantify_bivariate_dependence(cop_workflow='P21+L23', components=('EAIS', 'WAIS'))
-    ax.text(0.945, 0.06, f'Best fit: {bicop.str().split(",")[0]},\nwith {TAU_REG} = {bicop.tau:.2f}',
-            fontsize='large', ha='right', va='bottom', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
+    bicop1 = quantify_bivariate_dependence(cop_workflow='P21+L23', components=('EAIS', 'WAIS'))
+    bicop2 = quantify_bivariate_dependence(cop_workflow='P21', components=('EAIS', 'WAIS'))
+    best_fit_str = (f'P21+L23: {bicop1.str().split(",")[0]}, {TAU_REG} = {bicop1.tau:.2f}\n'
+                    f'P21: {bicop2.str().split(",")[0]}, {TAU_REG} = {bicop2.tau:.2f}')
+    ax.text(0.625, 0.955, best_fit_str, ha='right', va='top',
+            fontsize='large', linespacing=1.8, bbox=dict(boxstyle='square,pad=0.4', fc='1', ec='0.85'))
     return fig, axs
 
 
