@@ -52,8 +52,8 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    }
 WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GSAT;\nEdwards et al., 2021)',
                   'wf_4': '$\\bf{Workflow\ 4}$\n(structured expert judgment;\nBamber et al., 2019)',
-                  'wf_3e': '$\\bf{Workflow\ 3}$\n(Antarctic ISM ensemble;\nDeConto et al., 2021)',
-                  'P21+L23': '$\\bf{P21\!+\!L23}$\n(Antarctic ISM ensemble;\nPayne et al., 2021; Li et al., 2023)',
+                  'wf_3e': '$\\bf{Workflow\ 3}$\n(Antarctic model ensemble;\nDeConto et al., 2021)',
+                  'P21+L23': '$\\bf{P21\!+\!L23}$\n(Antarctic model ensemble;\nPayne et al., 2021; Li et al., 2023)',
                   '0': '$\\bf{Independence}$\n(idealized)',
                   '1': '$\\bf{Perfect\ correlation}$\n(idealized)',
                   '10': '$\\bf{Antarctic\ correlation}$\n(idealized)',
