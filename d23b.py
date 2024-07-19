@@ -678,14 +678,14 @@ def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', m
         sns.kdeplot(qf_da, bw_adjust=0.3, color='b', fill=True, cut=0,  # limit to data limits
                     ax=ax)
         # Plot 5th, 50th, and 95th percentiles
-        y_pos = 12.3  # position of percentile whiskers is tuned for the default parameters
+        y_pos = 13  # position of percentile whiskers is tuned for the default parameters
         ax.plot([qf_da.quantile(p) for p in (0.05, 0.95)], [y_pos, y_pos], color='g', marker='|')
         ax.plot([qf_da.quantile(0.5), ], [y_pos, ], color='g', marker='x')
         if i == (n_axs-1):  # label percentiles in final subplot
             for p in [0.05, 0.5, 0.95]:
                 ax.text(qf_da.quantile(p), y_pos-0.4, f'{int(p*100)}th', ha='center', va='top', color='g', rotation=90)
         # Skewness and kurtosis
-        ax.text(1.15, 6.5,  # position tuned for the default parameters
+        ax.text(0.75, 6.5,  # position tuned for the default parameters
                 f"Skewness = {stats.skew(qf_da):.1f}\n"
                 f"Fisher's kurtosis = {stats.kurtosis(qf_da, fisher=True):0.1f}",
                 ha='right', va='center', fontsize='medium', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
@@ -693,7 +693,7 @@ def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', m
         ax.set_title(f'({chr(97+i)}) {component}')
     # x-axis label and limits
     axs[-1].set_xlabel(f'Contribution to GMSLR, m')
-    axs[-1].set_xlim([-0.2, 1.2])
+    axs[-1].set_xlim([-0.2, 0.8])
     return fig, axs
 
 
@@ -1016,7 +1016,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), color
 
 def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.BicopFamily.joe, pv.BicopFamily.clayton),
                      colors_a=('green', ), colors_b=('darkred', 'blue'),
-                     marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100, ylim=(-0.2, 3.25)):
+                     marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100, ylim=(-0.2, 2.7)):
     """
     Plot figure showing median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs tau (x-axis)
     for (a) Gaussian pair copulas and (b) Joe & Clayton pair copulas (default).
@@ -1036,7 +1036,7 @@ def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.Bico
     marg_year : int
         Year to use for the component marginals. Default is 2100.
     ylim : tuple
-        Limits for y-axis. Default is (-0.2, 3.25).
+        Limits for y-axis. Default is (-0.2, 2.7).
 
     Returns
     -------
@@ -1173,7 +1173,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
 def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L23'),
                       ref_workflows=('0', '0', '0', '10', '10', '10'),
                       marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
-                      thresh_for_timing_diff=(1.4, 0.2), ylim=(-0.2, 2.3)):
+                      thresh_for_timing_diff=None, ylim=(-0.2, 2.0)):
     """
     Plot figure showing median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs time (x-axis)
     for different copulas (in multiple panels).
@@ -1195,9 +1195,9 @@ def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'P21+L
         Target years for the component marginals. Default is np.arange(2020, 2101, 10).
     thresh_for_timing_diff : tuple, True, or None
         Thresholds to use if demonstrating the difference in timing at the 95th percentile and median.
-        If True, select automatically. Default is (1.4, 0.2).
+        If True, select automatically. Default is None.
     ylim : tuple
-        Limits for y-axis. Default is (-0.2, 2.3).
+        Limits for y-axis. Default is (-0.2, 2.0).
 
     Returns
     -------
