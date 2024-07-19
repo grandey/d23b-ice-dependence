@@ -423,7 +423,7 @@ def get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year
 @cache
 def get_fusion_weights():
     """
-    Return triangular weighting function for fusion.
+    Return trapezoidal weighting function for fusion.
 
     Returns
     -------
@@ -434,11 +434,17 @@ def get_fusion_weights():
     -----
     This function follows https://github.com/grandey/d23a-fusion.
     """
-    # Get a quantile function corresponding to a projection of total RSLC, using default parameters
+    # Get a quantile function corresponding to a projection of total sea level, using default parameters
     w_da = get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year=2100
                             ).copy()  # use as template for w_da, with data to be updated
-    # Update data to triangular weighting function, with weights depending on probability
-    w_da.data = 1 - np.abs(w_da.p - 0.5) * 2
+    # Update data to follow trapezoidal weighting function, with weights depending on probability
+    da1 = w_da.sel(p=slice(0, 0.1699999))
+    da1[:] = da1.p / 0.17
+    da2 = w_da.sel(p=slice(0.17, 0.83))
+    da2[:] = 1.
+    da3 = w_da.sel(p=slice(0.8300001, 1))
+    da3[:] = (1 - da3.p) / 0.17
+    w_da = xr.concat([da1, da2, da3], dim='p')
     # Rename
     w_da = w_da.rename('weights')
     return w_da
