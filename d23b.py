@@ -253,8 +253,7 @@ def read_gauge_info(gauge='TANJONG_PAGAR'):
         Dictionary containing gauge_name, gauge_id, lat, lon.
     """
     # Read input file into DataFrame
-    in_dir = Path('data')
-    in_fn = in_dir / 'location_list.lst'
+    in_fn = IN_BASE / 'location_list.lst'
     in_df = pd.read_csv(in_fn, sep='\t', names=['gauge_name', 'gauge_id', 'lat', 'lon'])
     # Get data for gauge of interest
     try:
@@ -294,7 +293,7 @@ def read_gauge_grd(gauge='TANJONG_PAGAR'):
     if lon < 0.:
         lon += 360
     # Get GRD fingerprint for each ice sheet, using nearest location with GRD data
-    in_dir = Path('data/grd_fingerprints_data/FPRINT')
+    in_dir = IN_BASE / 'grd_fingerprints_data' / 'FPRINT'
     for component in ['EAIS', 'WAIS', 'GIS']:  # FACTS uses 'GIS' instead of 'GrIS'
         in_fn = in_dir / f'fprint_{component.lower()}.nc'
         try:
