@@ -55,5 +55,5 @@ We thank the Climate and Cryosphere (CliC) effort, which provided support for IS
 We acknowledge the World Climate Research Programme, which, through its Working Group on Coupled Modelling, coordinated and promoted CMIP5 and CMIP6.
 We thank the climate modeling groups for producing and making available their model output, the Earth System Grid Federation (ESGF) for archiving the CMIP data and providing access, the University at Buffalo for ISMIP6 data distribution and upload, and the multiple funding agencies who support CMIP5 and CMIP6 and ESGF.
 We thank the ISMIP6 steering committee, the ISMIP6 model selection group and ISMIP6 dataset preparation group for their continuous engagement in defining ISMIP6.
-We thank Li et al. (2023) for publishing the data from their Antarctic ISM simulations.
+We thank Payne et al. (2021) and Li et al. (2023) for publishing the data from their Antarctic ISM simulations.
 We thank Kopp et al. (2023) for publishing the FACTS module data.
