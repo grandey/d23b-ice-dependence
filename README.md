@@ -3,7 +3,7 @@
 ## Usage guidelines
 This repository accompanies the following manuscript:
 
-B. S. Grandey et al. (2024),  **Modelling Correlation Between the Ice Sheet Components of Sea-Level Rise**, _in preparation_.
+B. S. Grandey, S. Jevrejeva, Z. Y. Koh, B. P. Horton, J. Dauwels, and L. Y. Chew (2024),  **Modelling Correlation Between the Ice Sheet Components of Sea-Level Rise**, _in preparation_.
 
 The manuscript serves as the primary reference.
 The Zenodo archive of this repository will serve as a secondary reference.
