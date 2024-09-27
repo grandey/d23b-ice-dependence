@@ -1302,7 +1302,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     return ax
 
 
-def name_save_fig(fig, fso='f', exts=('pdf', 'png'), close=False):
+def name_save_fig(fig, fso='o', exts=('pdf', 'png'), close=False):
     """
     Name & save a figure, then increase counter.
 
