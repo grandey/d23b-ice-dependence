@@ -43,6 +43,7 @@ IN_BASE = Path.cwd() / 'data'  # base directory of input data
 COMPONENTS = ['EAIS', 'WAIS', 'GrIS']  # ice sheet components of sea level, ordered according to vine copula
 WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used for the correlation structures
                    'wf_4': 'Workflow 4 corr.',
+                   'wf_2e': 'Workflow 2e corr.',
                    'wf_3e': 'Workflow 3e corr.',
                    'P21+L23': 'P21+L23 ensemble corr.',
                    '0': 'Independence',  # idealized indepedence
@@ -52,6 +53,7 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    }
 WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GSAT;\nEdwards et al., 2021)',
                   'wf_4': '$\\bf{Workflow\ 4}$\n(structured expert judgment;\nBamber et al., 2019)',
+                  'wf_2e': '$\\bf{Workflow\ 2e}$\n(Antarctic model ensemble;\nLevermann et al., 2020)',
                   'wf_3e': '$\\bf{Workflow\ 3e}$\n(Antarctic model ensemble;\nDeConto et al., 2021)',
                   'P21+L23': '$\\bf{P21\!+\!L23}$\n(Antarctic model ensemble;\nPayne et al., 2021; Li et al., 2023)',
                   '0': '$\\bf{Independence}$\n(idealized)',
@@ -60,6 +62,7 @@ WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GSAT;\nE
                   }  # WORKFLOW_NOTES is used by fig_dependence_table()
 WORKFLOW_COLORS = {'wf_1e': 'darkblue',  # colors used by ax_total_vs_time(), ax_sum_vs_gris_fingerprint()
                    'wf_4': 'darkgreen',
+                   'wf_2e': 'lightred',
                    'wf_3e': 'darkred',
                    'P21+L23': 'purple',
                    '0': 'lightslategrey',
@@ -89,7 +92,7 @@ def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year
     Parameters
     ----------
     workflow : str
-        AR6 workflow.  Options are 'wf_1e' (default), 'wf_3e', or 'wf_4'.
+        AR6 workflow.  Options are 'wf_1e' (default), 'wf_2e', 'wf_3e', or 'wf_4'.
     component : str
         Component of GMSLR. Options are 'EAIS' (East Antarctic Ice Sheet, default),
         'WAIS' (West Antarctic Ice Sheet), 'GrIS' (Greenland Ice Sheet), and 'GMSLR' (total GMSLR).
@@ -110,7 +113,7 @@ def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year
         in_fn = in_dir / 'total-workflow.nc'
     elif component == 'GrIS':  # Greenland
         in_dir = IN_BASE / 'ar6' / 'global' / 'full_sample_components'
-        if workflow in ['wf_1e', 'wf_3e']:
+        if workflow in ['wf_1e', 'wf_2e', 'wf_3e']:
             gris_source = 'ipccar6-ismipemu'
         elif workflow == 'wf_4':
             gris_source = 'ipccar6-bamber'
@@ -119,6 +122,8 @@ def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year
         in_dir = IN_BASE / 'ar6' / 'global' / 'full_sample_components'
         if workflow == 'wf_1e':
             ais_source = 'ipccar6-ismipemu'
+        elif workflow == 'wf_2e':
+            ais_source = 'ipccar6-larmip'
         elif workflow == 'wf_3e':
             ais_source = 'dp20-'
         elif workflow == 'wf_4':
@@ -135,7 +140,7 @@ def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year
     samples_da = samples_da / 1000.
     samples_da.attrs['units'] = 'm'
     # For wf_1e, also include PEN in WAIS (implicitly preserving dependence structure of samples)
-    if workflow == 'wf_1e' and component == 'WAIS':
+    if workflow in ['wf_1e', 'wf_2e'] and component == 'WAIS':
         samples_da += read_ar6_samples(workflow=workflow, component='PEN', scenario=scenario, year=year)
         print(f'read_ar6_samples({workflow}, {component}, {scenario}, {year}): including PEN in WAIS')
     # Return result (without sorting/ordering)
