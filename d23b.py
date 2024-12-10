@@ -39,9 +39,47 @@ sns.set_style(SNS_STYLE)
 
 
 # Constants
-CONVERT_GT_M = 1. / 362.5 / 1e3  # ice mass above floatation to SLE: 362.5 Gt ~ 1 mm SLE (Goelzer et al, 2020)
 IN_BASE = Path.cwd() / 'data'  # base directory of input data
 COMPONENTS = ['EAIS', 'WAIS', 'GrIS']  # ice sheet components of sea level, ordered according to vine copula
+CONVERT_GT_M = 1. / 362.5 / 1e3  # ice mass above floatation to SLE: 362.5 Gt ~ 1 mm SLE (Goelzer et al, 2020)
+S20_EXP_DF = pd.DataFrame(  # Seroussi et al. (2020) experiments, from Table 1 of Seroussi et al. (2020)
+    [['exp01', 'NorESM1-M', 'RCP8.5', 'Open', 'Medium', 'No'],
+     ['exp02', 'MIROC-ESM-CHEM', 'RCP8.5', 'Open', 'Medium', 'No'],
+     #['exp03', 'NorESM1-M', 'RCP2.6', 'Open', 'Medium', 'No'],
+     ['exp04', 'CCSM4', 'RCP8.5', 'Open', 'Medium', 'No'],
+     ['exp05', 'NorESM1-M', 'RCP8.5', 'Standard', 'Medium', 'No'],
+     ['exp06', 'MIROC-ESM-CHEM', 'RCP8.5', 'Standard', 'Medium', 'No'],
+     #['exp07', 'NorESM1-M', 'RCP2.6', 'Standard', 'Medium', 'No'],
+     ['exp08', 'CCSM4', 'RCP8.5', 'Standard', 'Medium', 'No'],
+     ['exp09', 'NorESM1-M', 'RCP8.5', 'Standard', 'High', 'No'],
+     ['exp10', 'NorESM1-M', 'RCP8.5', 'Standard', 'Low', 'No'],
+     ['exp11', 'CCSM4', 'RCP8.5', 'Open', 'Medium', 'Yes'],
+     ['exp12', 'CCSM4', 'RCP8.5', 'Standard', 'Medium', 'Yes'],
+     ['exp13', 'NorESM1-M', 'RCP8.5', 'Standard', 'PIGL', 'No'],
+     ['expA1', 'HadGEM2-ES', 'RCP8.5', 'Open', 'Medium', 'No'],
+     ['expA2', 'CSIRO-MK3', 'RCP8.5', 'Open', 'Medium', 'No'],
+     ['expA3', 'IPSL-CM5A-MR', 'RCP8.5', 'Open', 'Medium', 'No'],
+     #['expA4', 'IPSL-CM5A-MR', 'RCP2.6', 'Open', 'Medium', 'No'],
+     ['expA5', 'HadGEM2-ES', 'RCP8.5', 'Standard', 'Medium', 'No'],
+     ['expA6', 'CSIRO-MK3', 'RCP8.5', 'Standard', 'Medium', 'No'],
+     ['expA7', 'IPSL-CM5A-MR', 'RCP8.5', 'Standard', 'Medium', 'No'],
+     #['expA8', 'IPSL-CM5A-MR', 'RCP2.6', 'Standard', 'Medium', 'No']
+     ],
+    columns=['Experiment', 'ESM', 'Scenario', 'Ocean forcing', 'Ocean sensitivity', 'Ice shelf fracture'])
+S20_EXP_DF.set_index(S20_EXP_DF['Experiment'].str.strip('exp').values, inplace=True)
+P21_EXP_DF = pd.DataFrame(  # Payne et al. (2020) experiments, from https://doi.org/10.5281/zenodo.4498331 README.txt
+    [['expB1', 'CNRM-CM6-1', 'ssp585,', 'Standard'],
+     #['expB2', 'CNRM-CM6-1', 'ssp126,', 'Standard'],
+     ['expB3', 'UKESM1-0-LL', 'ssp585,', 'Standard'],
+     ['expB4', 'CESM2', 'ssp585,', 'Standard'],
+     ['expB5', 'CNRM-ESM2-1', 'ssp585,', 'Standard'],
+     ['expB6', 'CNRM-CM6-1', 'ssp585,', 'Open'],
+     #['expB7', 'CNRM-CM6-1', 'ssp126,', 'Open'],
+     ['expB8', 'UKESM1-0-LL', 'ssp585,', 'Open'],
+     ['expB9', 'CESM2', 'ssp585,', 'Open'],
+     ['expB10', 'CNRM-ESM2-1', 'ssp585,', 'Open']],
+    columns=['Experiment', 'ESM', 'Scenario', 'Ocean forcing'])
+P21_EXP_DF.set_index(P21_EXP_DF['Experiment'].str.strip('exp').values, inplace=True)
 WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used for the correlation structures
                    'wf_4': 'Workflow 4 corr.',
                    'wf_2e': 'Workflow 2e corr.',
@@ -160,7 +198,7 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
     ----------
     ensemble : str
         Ensemble to read. Options are 'S20' (Seroussi et al.), 'P21' (Payne et al.), 'L23' (Li et al.), and
-        'S20+P21+L23' (combined ensemble; default).
+        combinations such as 'S20+P21+L23' (default).
     ref_year : int
         Reference year. Default is 2015 (which is the start year for the P21 data).
     target_year : int
@@ -186,26 +224,8 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
     elif ensemble == 'S20':
         # Location of S20 data
         in_dir = IN_BASE / 'ComputedScalarsPaper'
-        # S20 experiments of interest (all RCP8.5; see Table 1 of S20)
-        exp_list = ['01',  # NorESM1-M, RCP8.5, Open
-                    '02',  # MIROC-ESM-CHEM, RCP8.5, Open
-                    '04',  # CCSM4, RCP8.5, Open
-                    '05',  # NorESM1-M, RCP8.5, Standard
-                    '06',  # MIROC-ESM-CHEM, RCP8.5, Standard
-                    '08',  # CCSM4, RCP8.5, Standard
-                    '09',  # NorESM1-M, RCP8.5, Standard, High ocean sensitivity
-                    '10',  # NorESM1-M, RCP8.5, Standard, Low ocean sensitivity
-                    '11',  # CCSM4, RCP8.5, Open, Ice shelf fracture
-                    '12',  # CCSM4 RCP8.5, Standard, Ice shelf fracture
-                    '13',  # NorESM1-M, RCP8.5, Standard, PIGL ocean sensitivity
-                    'A1',  # HadGEM2-ES RCP8.5, Open
-                    'A2',  # CSIRO-MK3 RCP8.5, Open
-                    'A3',  # IPSL-CM5A-MR, RCP8.5, Open
-                    'A5',  # HadGEM2-ES, RCP8.5, Standard
-                    'A6',  # CSIRO-MK3, RCP8.5, Standard
-                    'A7']  # IPSL-CM5A-MR, RCP8.5, Standard
         # Loop over experiments
-        for exp in exp_list:
+        for exp in S20_EXP_DF.index:
             # Loop over available input files
             in_fns = sorted(in_dir.glob(f'*/*/exp{exp}/computed_ivaf_minus_ctrl_proj_AIS_*_exp{exp}.nc'))
             for in_fn in in_fns:
@@ -235,17 +255,8 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
     elif ensemble == 'P21':
         # Location of P21 data
         in_dir = IN_BASE / 'CMIP5_CMIP6_Scalars_Paper' / 'AIS' / 'Ice'
-        # P21 experiments of interest (all SSP5-8.5; see https://doi.org/10.5281/zenodo.4498331 README.txt)
-        exp_list = ['B1',  # CNRM-CM6-1 SSP5-8.5, open protocol
-                    'B3',  # UKESM1-0-LL SSP5-8.5, open protocol
-                    'B4',  # CESM2 SSP5-8.5, open protocol
-                    'B5',  # CNRM-ESM2-1 SSP5-8.5, open protocol
-                    'B6',  # CNRM-CM6-1 SSP5-8.5, standard protocol
-                    'B8',  # UKESM1-0-LL SSP5-8.5, standard protocol
-                    'B9',  # CESM2 SSP5-8.5, standard protocol
-                    'B10']  # CNRM-ESM2-1 SSP5-8.5, standard protocol
         # Loop over experiments
-        for exp in exp_list:
+        for exp in P21_EXP_DF.index:
             # Loop over available input files
             in_fns = sorted(in_dir.glob(f'computed_limnsw_minus_ctrl_proj_AIS_*_exp{exp}.nc'))
             for in_fn in in_fns:
@@ -756,12 +767,15 @@ def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', m
     return fig, axs
 
 
-def fig_ism_ensemble(ref_year=2015, target_year=2100):
+def fig_ism_ensemble(ensemble='P21+L23', ref_year=2015, target_year=2100):
     """
     Plot figure showing combined ISM ensemble WAIS vs EAIS on (a) GMSLR scale and (b) copula scale.
 
     Parameters
     ----------
+    ensemble : str
+        Ensemble to read. Options are 'S20' (Seroussi et al.), 'P21' (Payne et al.), 'L23' (Li et al.), and
+        combinations such as 'P21+L23' (default).
     ref_year : int
         Reference year. Default is 2015 (which is the start year for Payne et al. data).
     target_year : int
@@ -772,13 +786,13 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     fig : Figure
     axs : array of Axes
     """
-    # Read combined Antarctic ISM ensemble data from Payne et al. (2021) and Li et al. (2023)
-    ism_df = read_ism_ensemble_data(ensemble='P21+L23', ref_year=ref_year, target_year=target_year).copy()
+    # Read Antarctic ISM ensemble data
+    ism_df = read_ism_ensemble_data(ensemble=ensemble, ref_year=ref_year, target_year=target_year).copy()
     # Include number of samples in label (for legend)
-    for ensemble in ism_df['Ensemble'].unique():
-        ensemble_df = ism_df.loc[ism_df['Ensemble'] == ensemble]
-        n_samples = len(ensemble_df)
-        ism_df = ism_df.replace(ensemble, f'{ensemble} (n = {n_samples})')
+    for ens in ism_df['Ensemble'].unique():
+        ens_df = ism_df.loc[ism_df['Ensemble'] == ens]
+        n_samples = len(ens_df)
+        ism_df = ism_df.replace(ens, f'{ens} (n = {n_samples})')
     # Create Figure and Axes
     fig, axs = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
     # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
@@ -804,9 +818,9 @@ def fig_ism_ensemble(ref_year=2015, target_year=2100):
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])
     # Annotate with best-fit copula (limited to single-parameter families)
-    bicop1 = quantify_bivariate_dependence(cop_workflow='P21+L23', components=('EAIS', 'WAIS'))
+    bicop1 = quantify_bivariate_dependence(cop_workflow=ensemble, components=('EAIS', 'WAIS'))
     bicop2 = quantify_bivariate_dependence(cop_workflow='P21', components=('EAIS', 'WAIS'))
-    best_fit_str = (f'P21+L23: {bicop1.str().split(",")[0]}, {TAU_REG} = {bicop1.tau:.2f}\n'
+    best_fit_str = (f'{ensemble}: {bicop1.str().split(",")[0]}, {TAU_REG} = {bicop1.tau:.2f}\n'
                     f'P21: {bicop2.str().split(",")[0]}, {TAU_REG} = {bicop2.tau:.2f}')
     ax.text(0.625, 0.955, best_fit_str, ha='right', va='top',
             fontsize='large', linespacing=1.8, bbox=dict(boxstyle='square,pad=0.4', fc='1', ec='0.85'))
