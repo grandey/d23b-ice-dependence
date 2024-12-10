@@ -214,7 +214,7 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
     For convenience, a 'GrIS' column is included, populated with zeros. This enables fitting of a vine copula.
     """
     # DataFrame to hold data
-    ism_df = pd.DataFrame(columns=['EAIS', 'WAIS', 'Ensemble', 'Exp', 'Notes'])
+    ism_df = pd.DataFrame(columns=['EAIS', 'WAIS', 'Ensemble', 'Exp', 'ESM', 'ISM'])
     # If combined ensemble, call recursively
     if '+' in ensemble:
         for ens in ensemble.split('+'):
@@ -225,14 +225,21 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
         # Location of S20 data
         in_dir = IN_BASE / 'ComputedScalarsPaper'
         # Loop over experiments
-        for exp in S20_EXP_DF.index:
+        for exp, exp_ser in S20_EXP_DF.iterrows():
+            print(f'Reading {ensemble} exp{exp} data.')
             # Loop over available input files
             in_fns = sorted(in_dir.glob(f'*/*/exp{exp}/computed_ivaf_minus_ctrl_proj_AIS_*_exp{exp}.nc'))
             for in_fn in in_fns:
-                # Create dictionary to hold data for this input file
-                ais_dict = {'Ensemble': ensemble, 'Exp': exp}
-                # Get ice sheet model institute and name
-                ais_dict['Notes'] = f'{exp}_' + '_'.join(in_fn.name.split('_')[-3:-1])
+                # Create dictionary to hold data for this input file, including experiment info
+                ais_dict = {'Ensemble': ensemble, 'Exp': exp, 'ESM': exp_ser['ESM']}
+                # Get ice sheet model info
+                ism_info = '_'.join(str(in_fn).split('/')[-4:-2])  # institute and model name
+                ism_info += '_' + exp_ser['Ocean forcing']  # include ocean forcing protocol info
+                if exp_ser['Ocean sensitivity'] != 'Medium':  # include ocean sensitivity info if not medium
+                    ism_info += '_' + exp_ser['Ocean sensitivity']
+                if exp_ser['Ice shelf fracture'] == 'Yes':  # if ice shelf fracture included, indicate this
+                    ism_info += '_Fracture'
+                ais_dict['ISM'] = ism_info
                 # Read DataSet
                 in_ds = xr.load_dataset(in_fn, decode_times=False)
                 # Calculate SLE for target year relative to reference year for EAIS and WAIS; remember sign
@@ -256,14 +263,17 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
         # Location of P21 data
         in_dir = IN_BASE / 'CMIP5_CMIP6_Scalars_Paper' / 'AIS' / 'Ice'
         # Loop over experiments
-        for exp in P21_EXP_DF.index:
+        for exp, exp_ser in P21_EXP_DF.iterrows():
+            print(f'Reading {ensemble} exp{exp} data.')
             # Loop over available input files
             in_fns = sorted(in_dir.glob(f'computed_limnsw_minus_ctrl_proj_AIS_*_exp{exp}.nc'))
             for in_fn in in_fns:
-                # Create dictionary to hold data for this input file
-                ais_dict = {'Ensemble': ensemble, 'Exp': exp}
-                # Get ice sheet model institute and name
-                ais_dict['Notes'] = f'{exp}_' + '_'.join(in_fn.name.split('_')[-3:-1])
+                # Create dictionary to hold data for this input file, including experiment info
+                ais_dict = {'Ensemble': ensemble, 'Exp': exp, 'ESM': exp_ser['ESM']}
+                # Get ice sheet model info
+                ism_info = in_fn.name.split('AIS_')[-1].split('_exp')[0]
+                ism_info += '_' + exp_ser['Ocean forcing']  # include ocean forcing protocol info
+                ais_dict['ISM'] = ism_info
                 # Read DataSet
                 in_ds = xr.load_dataset(in_fn, decode_times=False)
                 # Calculate SLE for target year relative to reference year for EAIS and WAIS; remember sign
@@ -279,19 +289,17 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
                 ism_df.loc[len(ism_df)] = ais_dict
     # Li et al. data
     elif ensemble == 'L23':
-        # Lists containing experiments of interest and CMIP6 ESMs
-        exp_list = ['CMIP6_BC_1850-2100',]
-        esm_list = ['CNRM-CM6-1', 'UKESM1-0-LL', 'CESM2', 'CNRM-ESM2-1']  # ESMs also used by P21
         # Loop over experiments
+        exp_list = ['CMIP6_BC_1850-2100',]
         for exp in exp_list:
-            # Loop over ESMs
-            for esm in esm_list:
-                # Create dictionary to hold data for this input file
-                ais_dict = {'Ensemble': ensemble, 'Exp': exp}
-                # Get ice sheet model institute and name
-                ais_dict['Notes'] = f'{exp} {esm}'
+            print(f'Reading {ensemble} {exp} data.')
+            # Loop over available input files for different ESMs
+            in_dir = IN_BASE / exp
+            in_fns = sorted(in_dir.glob('*/fort.22'))
+            for in_fn in in_fns:
+                # Create dictionary to hold data for this input file, including model info
+                ais_dict = {'Ensemble': ensemble, 'Exp': exp, 'ESM': str(in_fn).split('/')[-2], 'ISM': 'L23_MICI'}
                 # Read data
-                in_fn = IN_BASE / exp / esm / 'fort.22'
                 try:
                     in_df = pd.read_fwf(in_fn, skiprows=1, index_col='time')
                 except ValueError:
