@@ -775,7 +775,7 @@ def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', m
     return fig, axs
 
 
-def fig_ism_ensemble(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
+def fig_ism_ensemble(ensemble='S20+P21+L23', ref_year=2015, target_year=2100, hue='Ensemble', style='Ensemble'):
     """
     Plot figure showing combined ISM ensemble WAIS vs EAIS on (a) GMSLR scale and (b) copula scale.
 
@@ -788,6 +788,10 @@ def fig_ism_ensemble(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
         Reference year. Default is 2015 (which is the start year for Payne et al. data).
     target_year : int
         Target year for difference. Default is 2100.
+    hue : str
+        Categorisation to use for hue of points. Default is 'Ensemble'.
+    style : str
+        Categorisation to use for style of points. Default is 'Ensemble'.
 
     Returns
     -------
@@ -796,17 +800,34 @@ def fig_ism_ensemble(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
     """
     # Read Antarctic ISM ensemble data
     ism_df = read_ism_ensemble_data(ensemble=ensemble, ref_year=ref_year, target_year=target_year).copy()
-    # Include number of samples in label (for legend)
-    for ens in ism_df['Ensemble'].unique():
-        ens_df = ism_df.loc[ism_df['Ensemble'] == ens]
-        n_samples = len(ens_df)
-        ism_df = ism_df.replace(ens, f'{ens} (n = {n_samples})')
+    # Include number of samples in label (for legend), and impose mimimum number of samples if hue/style is ESM/ISM
+    if 'ESM' in (hue, style):
+        for esm in ism_df['ESM'].unique():
+            temp_df = ism_df.loc[ism_df['ESM'] == esm]
+            n_samples = len(temp_df)
+            if n_samples >= 10:
+                ism_df = ism_df.replace(esm, f'{esm} (n = {n_samples})')
+            else:  # drop if fewer than 10
+                ism_df = ism_df.loc[ism_df['ESM'] != esm]
+    if 'ISM' in (hue, style):
+        for ism in ism_df['ISM'].unique():
+            temp_df = ism_df.loc[ism_df['ISM'] == ism]
+            n_samples = len(temp_df)
+            if n_samples >= 10:
+                ism_df = ism_df.replace(ism, f'{ism} (n = {n_samples})')
+            else:  # drop if fewer than 10
+                ism_df = ism_df.loc[ism_df['ISM'] != ism]
+    if 'Ensemble' in (hue, style):
+        for ens in ism_df['Ensemble'].unique():
+            temp_df = ism_df.loc[ism_df['Ensemble'] == ens]
+            n_samples = len(temp_df)
+            ism_df = ism_df.replace(ens, f'{ens} (n = {n_samples})')
     # Create Figure and Axes
-    fig, axs = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
+    fig, axs = plt.subplots(1, 2, figsize=(10, 4), tight_layout=True)
     # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
     ax = axs[0]
-    sns.scatterplot(ism_df, x='EAIS', y='WAIS', hue='Ensemble', style='Ensemble', ax=ax)
-    ax.legend(loc='upper left', fontsize='large', framealpha=1, edgecolor='0.85')  # edgecolor consistent with (b)
+    sns.scatterplot(ism_df, x='EAIS', y='WAIS', hue=hue, style=style, ax=ax)
+    ax.legend(loc='upper left', fontsize='large', bbox_to_anchor=(1.05, 1), borderaxespad=0.)
     ax.set_title(f'(a) Sea-level equivalent data')
     ax.set_xlabel('EAIS, m')
     ax.set_ylabel('WAIS, m')
@@ -818,8 +839,9 @@ def fig_ism_ensemble(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
     ax = axs[1]
     x_n2 = np.stack([ism_df['EAIS'], ism_df['WAIS']], axis=1)
     u_n2 = pv.to_pseudo_obs(x_n2)
-    u_df = pd.DataFrame({'EAIS': u_n2[:, 0], 'WAIS': u_n2[:, 1], 'Ensemble': ism_df['Ensemble']})
-    sns.scatterplot(u_df, x='EAIS', y='WAIS', hue='Ensemble', style='Ensemble', legend=False, ax=ax)
+    u_df = pd.DataFrame({'EAIS': u_n2[:, 0], 'WAIS': u_n2[:, 1],
+                         'Ensemble': ism_df['Ensemble'], 'ESM': ism_df['ESM'], 'ISM': ism_df['ISM']})
+    sns.scatterplot(u_df, x='EAIS', y='WAIS', hue=hue, style=style, legend=False, ax=ax)
     ax.set_title(f'(b) Pseudo-copula data')
     ax.set_xlabel('EAIS, unitless')
     ax.set_ylabel('\nWAIS, unitless')
