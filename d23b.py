@@ -775,7 +775,7 @@ def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', m
     return fig, axs
 
 
-def fig_ism_ensemble(ensemble='P21+L23', ref_year=2015, target_year=2100):
+def fig_ism_ensemble(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
     """
     Plot figure showing combined ISM ensemble WAIS vs EAIS on (a) GMSLR scale and (b) copula scale.
 
@@ -783,7 +783,7 @@ def fig_ism_ensemble(ensemble='P21+L23', ref_year=2015, target_year=2100):
     ----------
     ensemble : str
         Ensemble to read. Options are 'S20' (Seroussi et al.), 'P21' (Payne et al.), 'L23' (Li et al.), and
-        combinations such as 'P21+L23' (default).
+        combinations such as 'S20+P21+L23' (default).
     ref_year : int
         Reference year. Default is 2015 (which is the start year for Payne et al. data).
     target_year : int
@@ -806,14 +806,14 @@ def fig_ism_ensemble(ensemble='P21+L23', ref_year=2015, target_year=2100):
     # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
     ax = axs[0]
     sns.scatterplot(ism_df, x='EAIS', y='WAIS', hue='Ensemble', style='Ensemble', ax=ax)
-    ax.legend(loc='lower right', fontsize='large', framealpha=1, edgecolor='0.85')  # edgecolor consistent with (b)
+    ax.legend(loc='upper left', fontsize='large', framealpha=1, edgecolor='0.85')  # edgecolor consistent with (b)
     ax.set_title(f'(a) Sea-level equivalent data')
     ax.set_xlabel('EAIS, m')
     ax.set_ylabel('WAIS, m')
-    ax.set_xlim(-0.15, 0.65)
-    ax.set_xticks(np.arange(-0.1, 0.61, 0.1))
-    ax.set_ylim(-0.1, 0.4)
-    ax.set_yticks(np.arange(-0.1, 0.31, 0.1))
+    ax.set_xlim(-0.1, 0.7)
+    ax.set_xticks(np.arange(-0.1, 0.71, 0.1))
+    ax.set_ylim(-0.1, 0.5)
+    ax.set_yticks(np.arange(-0.1, 0.51, 0.1))
     # (b) Pseudo-copula data on copula scale
     ax = axs[1]
     x_n2 = np.stack([ism_df['EAIS'], ism_df['WAIS']], axis=1)
@@ -825,13 +825,6 @@ def fig_ism_ensemble(ensemble='P21+L23', ref_year=2015, target_year=2100):
     ax.set_ylabel('\nWAIS, unitless')
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])
-    # Annotate with best-fit copula (limited to single-parameter families)
-    bicop1 = quantify_bivariate_dependence(cop_workflow=ensemble, components=('EAIS', 'WAIS'))
-    bicop2 = quantify_bivariate_dependence(cop_workflow='P21', components=('EAIS', 'WAIS'))
-    best_fit_str = (f'{ensemble}: {bicop1.str().split(",")[0]}, {TAU_REG} = {bicop1.tau:.2f}\n'
-                    f'P21: {bicop2.str().split(",")[0]}, {TAU_REG} = {bicop2.tau:.2f}')
-    ax.text(0.625, 0.955, best_fit_str, ha='right', va='top',
-            fontsize='large', linespacing=1.8, bbox=dict(boxstyle='square,pad=0.4', fc='1', ec='0.85'))
     return fig, axs
 
 
