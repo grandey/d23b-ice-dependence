@@ -207,7 +207,7 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
     Returns
     -------
     ism_df : pandas DataFrame
-        A DataFrame containing EAIS and WAIS sea-level equivalents (in m), Ensemble (S20, P21, or L23), and Notes.
+        A DataFrame containing EAIS and WAIS components (in m), Ensemble (S20, P21, or L23), Exp, ESM, and ISM.
 
     Notes
     -----
@@ -526,6 +526,50 @@ def get_fusion_weights():
     # Rename
     w_da = w_da.rename('weights')
     return w_da
+
+
+@cache
+def get_ism_corr_df(ensemble='S20+P21+L23', ref_year=2015, target_year=2100, min_n=6):
+    """
+    Return DataFrame of Kendall's tau and Pearson's r due to climate/process uncertainty for each ISM/ESM.
+
+    Parameters
+    ----------
+    ensemble : str
+        Ensemble to include. Default is 'S20+P21+L23' (default).
+    ref_year : int
+        Reference year. Default is 2015 (which is the start year for the P21 data).
+    target_year : int
+        Target year for difference. Default is 2100.
+    min_n : int
+        Minimum number of samples to calculate correlation. Default is 6.
+
+    Returns:
+    --------
+    ism_corr_df : pandas.DataFrame
+         A DataFrame containing type of uncertainty, model (ISM/ESM), number of samples, Kendall's tau, Pearson's r.
+    """
+    # Get data for combined ISM ensemble
+    ism_df = read_ism_ensemble_data(ensemble=ensemble, ref_year=ref_year, target_year=target_year)
+    # Create DataFrame to store correlations
+    ism_corr_df = pd.DataFrame(columns=['Uncertainty', 'Model', 'n', 'tau', 'r'])
+    # Correlation due to climate uncertainty
+    for ism in ism_df['ISM'].unique():
+        temp_df = ism_df.loc[ism_df['ISM'] == ism]
+        n = len(temp_df)
+        if n >= min_n:
+            tau = stats.kendalltau(temp_df['EAIS'], temp_df['WAIS'])[0]
+            r = stats.pearsonr(temp_df['EAIS'], temp_df['WAIS'])[0]
+            ism_corr_df.loc[len(ism_corr_df)] = {'Uncertainty': 'climate', 'Model': ism, 'n': n, 'tau': tau, 'r': r}
+    # Correlation due to process uncertainty
+    for esm in ism_df['ESM'].unique():
+        temp_df = ism_df.loc[ism_df['ESM'] == esm]
+        n = len(temp_df)
+        if n >= min_n:
+            tau = stats.kendalltau(temp_df['EAIS'], temp_df['WAIS'])[0]
+            r = stats.pearsonr(temp_df['EAIS'], temp_df['WAIS'])[0]
+            ism_corr_df.loc[len(ism_corr_df)] = {'Uncertainty': 'process', 'Model': esm, 'n': n, 'tau': tau, 'r': r}
+    return ism_corr_df
 
 
 @cache
