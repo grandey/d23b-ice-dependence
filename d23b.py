@@ -9,6 +9,7 @@ Author:
 
 from functools import cache
 import itertools
+import json
 import math
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
@@ -18,6 +19,7 @@ from pathlib import Path
 import pyvinecopulib as pv
 from scipy import stats
 import seaborn as sns
+import statsmodels.formula.api as smf
 from watermark import watermark
 import xarray as xr
 
@@ -45,7 +47,7 @@ CONVERT_GT_M = 1. / 362.5 / 1e3  # ice mass above floatation to SLE: 362.5 Gt ~ 
 S20_EXP_DF = pd.DataFrame(  # Seroussi et al. (2020) experiments, from Table 1 of Seroussi et al. (2020)
     [['exp01', 'NorESM1-M', 'RCP8.5', 'Open', 'Medium', 'No'],
      ['exp02', 'MIROC-ESM-CHEM', 'RCP8.5', 'Open', 'Medium', 'No'],
-     #['exp03', 'NorESM1-M', 'RCP2.6', 'Open', 'Medium', 'No'],
+     #['exp03', 'NorESM1-M', 'RCP2.6', 'Open', 'Medium', 'No'],  # use only RCP8.5 simulations
      ['exp04', 'CCSM4', 'RCP8.5', 'Open', 'Medium', 'No'],
      ['exp05', 'NorESM1-M', 'RCP8.5', 'Standard', 'Medium', 'No'],
      ['exp06', 'MIROC-ESM-CHEM', 'RCP8.5', 'Standard', 'Medium', 'No'],
@@ -69,7 +71,7 @@ S20_EXP_DF = pd.DataFrame(  # Seroussi et al. (2020) experiments, from Table 1 o
 S20_EXP_DF.set_index(S20_EXP_DF['Experiment'].str.strip('exp').values, inplace=True)
 P21_EXP_DF = pd.DataFrame(  # Payne et al. (2020) experiments, from https://doi.org/10.5281/zenodo.4498331 README.txt
     [['expB1', 'CNRM-CM6-1', 'ssp585,', 'Standard'],
-     #['expB2', 'CNRM-CM6-1', 'ssp126,', 'Standard'],
+     #['expB2', 'CNRM-CM6-1', 'ssp126,', 'Standard'],  # use only SSP5-8.5 simulations
      ['expB3', 'UKESM1-0-LL', 'ssp585,', 'Standard'],
      ['expB4', 'CESM2', 'ssp585,', 'Standard'],
      ['expB5', 'CNRM-ESM2-1', 'ssp585,', 'Standard'],
@@ -219,7 +221,10 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
     if '+' in ensemble:
         for ens in ensemble.split('+'):
             temp_df = read_ism_ensemble_data(ensemble=ens, ref_year=ref_year, target_year=target_year)
-            ism_df = pd.concat([ism_df, temp_df], ignore_index=True)
+            if ism_df.empty:  # avoid FutureWarning about concatenating an empty DataFrame
+                ism_df = temp_df
+            else:
+                ism_df = pd.concat([ism_df, temp_df], ignore_index=True)
     # Seroussi et al data
     elif ensemble == 'S20':
         # Location of S20 data
@@ -529,9 +534,10 @@ def get_fusion_weights():
 
 
 @cache
-def get_ism_corr_df(ensemble='S20+P21+L23', ref_year=2015, target_year=2100, min_n=6):
+def get_ism_corr_df(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
     """
-    Return DataFrame of Kendall's tau and Pearson's r due to climate/process uncertainty for each ISM/ESM.
+    Return DataFrame of EAIS−WAIS correlation (Pearson's r, Kendall's tau) and partial correlation (controlling for
+    ESM/ISM) using ISM ensemble data.
 
     Parameters
     ----------
@@ -541,34 +547,45 @@ def get_ism_corr_df(ensemble='S20+P21+L23', ref_year=2015, target_year=2100, min
         Reference year. Default is 2015 (which is the start year for the P21 data).
     target_year : int
         Target year for difference. Default is 2100.
-    min_n : int
-        Minimum number of samples to calculate correlation. Default is 6.
 
     Returns:
     --------
     ism_corr_df : pandas.DataFrame
-         A DataFrame containing type of uncertainty, model (ISM/ESM), number of samples, Kendall's tau, Pearson's r.
+
+    Note:
+    -----
+    Partial correlation is estimated using a residual-based approximation.
+    The effects of the controlling categorical variable (ESM or ISM) are first removed using linear regression.
     """
     # Get data for combined ISM ensemble
-    ism_df = read_ism_ensemble_data(ensemble=ensemble, ref_year=ref_year, target_year=target_year)
-    # Create DataFrame to store correlations
-    ism_corr_df = pd.DataFrame(columns=['Uncertainty', 'Model', 'n', 'tau', 'r'])
-    # Correlation due to climate uncertainty
-    for ism in ism_df['ISM'].unique():
-        temp_df = ism_df.loc[ism_df['ISM'] == ism]
-        n = len(temp_df)
-        if n >= min_n:
-            tau = stats.kendalltau(temp_df['EAIS'], temp_df['WAIS'])[0]
-            r = stats.pearsonr(temp_df['EAIS'], temp_df['WAIS'])[0]
-            ism_corr_df.loc[len(ism_corr_df)] = {'Uncertainty': 'climate', 'Model': ism, 'n': n, 'tau': tau, 'r': r}
-    # Correlation due to process uncertainty
-    for esm in ism_df['ESM'].unique():
-        temp_df = ism_df.loc[ism_df['ESM'] == esm]
-        n = len(temp_df)
-        if n >= min_n:
-            tau = stats.kendalltau(temp_df['EAIS'], temp_df['WAIS'])[0]
-            r = stats.pearsonr(temp_df['EAIS'], temp_df['WAIS'])[0]
-            ism_corr_df.loc[len(ism_corr_df)] = {'Uncertainty': 'process', 'Model': esm, 'n': n, 'tau': tau, 'r': r}
+    ism_df = read_ism_ensemble_data(ensemble=ensemble, ref_year=ref_year, target_year=target_year).dropna()
+    # Create DataFrame to store correlation data
+    ism_corr_df = pd.DataFrame(columns=["Description", "Control", "Pearson's r", "Kendall's 𝜏"])
+    # Loop over rows (control)
+    for i, control in enumerate([None, 'ISM', 'ESM']):
+        # If no control, use EAIS and WAIS data
+        if control is None:
+            ism_corr_df.loc[i, 'Description'] = 'Correlation between EAIS and WAIS'
+            ism_corr_df.loc[i, 'Control'] = 'None'
+            eais = ism_df['EAIS']
+            wais = ism_df['WAIS']
+        # Control for control variable using linear regression and use residuals to estimate partial correlation
+        else:
+            eais = smf.ols(f'EAIS ~ C({control})', data=ism_df).fit().resid
+            wais = smf.ols(f'WAIS ~ C({control})', data=ism_df).fit().resid
+            if np.var(eais) < 1e-6 or np.var(wais) < 1e-6:
+                print(f'Caution: when controlling {control}, residual variance is very small')
+            if control == 'ISM':
+                ism_corr_df.loc[i, 'Description'] = 'Partial correlation due to climate uncertainty'
+                ism_corr_df.loc[i, 'Control'] = 'Ice sheet model'
+            elif control == 'ESM':
+                ism_corr_df.loc[i, 'Description'] = 'Partial correlation due to process uncertainty'
+                ism_corr_df.loc[i, 'Control'] = 'Earth system model'
+        # Calculate correlation, using both Pearson's r and Kendall's tau
+        r, _ = stats.pearsonr(eais, wais)
+        ism_corr_df.loc[i, "Pearson's r"] = r
+        tau, _ = stats.kendalltau(eais, wais)
+        ism_corr_df.loc[i, "Kendall's 𝜏"] = tau
     return ism_corr_df
 
 
@@ -596,11 +613,11 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
     # Case 1: specify idealized dependence by specifying the copula
     if cop_workflow in ('0', '1', '10', '01'):
         if cop_workflow == '1':  # perfect dependence
-            bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])
+            bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=np.array([[1.0]]))
         elif cop_workflow == '10' and components == tuple(COMPONENTS[:2]):  # perfect dep. between 1st & 2nd components
-            bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])
+            bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=np.array([[1.0]]))
         elif cop_workflow == '01' and components == tuple(COMPONENTS[1:]):  # perfect dep. between 2nd & 3rd components
-            bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])
+            bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=np.array([[1.0]]))
         else:  # independence
             bicop = pv.Bicop(family=pv.BicopFamily.indep)
     # Case 2: quantify dependence by fitting copula to samples
@@ -621,7 +638,7 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
         controls = pv.FitControlsBicop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
                                                    pv.BicopFamily.gaussian, pv.BicopFamily.frank,
                                                    pv.BicopFamily.clayton])
-        bicop = pv.Bicop(data=u_n2, controls=controls)  # fit
+        bicop = pv.Bicop.from_data(u_n2, controls=controls)  # fit
     # Return result
     return bicop
 
@@ -649,20 +666,22 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
     # Case 1: idealized dependence by specifying a truncated vine copula
     if cop_workflow in ('1', '0', '10', '01') or type(cop_workflow) == tuple:
         if cop_workflow == '1':  # perfect dependence
-            bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,]), ] * 2
+            bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=np.array([[1.0]])), ] * 2
         elif cop_workflow == '0':  # independence
             bicops = [pv.Bicop(family=pv.BicopFamily.indep), ] * 2
         elif cop_workflow == '10':  # perfect dep. between 1st & 2nd components
-            bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,]), pv.Bicop(family=pv.BicopFamily.indep)]
+            bicops = [pv.Bicop(family=pv.BicopFamily.gaussian, parameters=np.array([[1.0]])),
+                      pv.Bicop(family=pv.BicopFamily.indep)]
         elif cop_workflow == '01':  # perfect dep. between 2nd & 3rd components
-            bicops = [pv.Bicop(family=pv.BicopFamily.indep), pv.Bicop(family=pv.BicopFamily.gaussian, parameters=[1,])]
+            bicops = [pv.Bicop(family=pv.BicopFamily.indep),
+                      pv.Bicop(family=pv.BicopFamily.gaussian, parameters=np.array([[1.0]]))]
         elif type(cop_workflow) == tuple:  # tuple of pair copula family and tau
             family, tau = cop_workflow
             parameters = pv.Bicop(family=family).tau_to_parameters(tau)
             bicop = pv.Bicop(family=family, parameters=parameters)
             bicops = [bicop, ] * 2
         structure = pv.DVineStructure(order=(1, 2, 3), trunc_lvl=1)
-        tricop = pv.Vinecop(structure, [bicops, ])
+        tricop = pv.Vinecop.from_structure(structure=structure, pair_copulas=[bicops])
     # Case 2: quantify dependence by fitting vine copula to samples
     else:
         # Read samples
@@ -682,7 +701,7 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
         controls = pv.FitControlsVinecop(family_set=[pv.BicopFamily.indep, pv.BicopFamily.joe, pv.BicopFamily.gumbel,
                                                      pv.BicopFamily.gaussian, pv.BicopFamily.frank,
                                                      pv.BicopFamily.clayton])
-        tricop = pv.Vinecop(data=u_n3, structure=structure, controls=controls)  # fit
+        tricop = pv.Vinecop.from_data(u_n3, structure=structure, controls=controls)  # fit
     # Return result
     return tricop
 
@@ -714,7 +733,7 @@ def sample_trivariate_copula(cop_workflow='wf_1e', n_samples=20000, plot=False):
     # Plot?
     if plot:
         sns.pairplot(pd.DataFrame(u_n3, columns=[f'u{n+1}' for n in range(3)]), kind='hist')
-        plt.suptitle(f'{cop_workflow}\n{tricop.str()}', y=1.15)
+        plt.suptitle(cop_workflow, y=1.15)
         plt.show()
     return u_n3
 
@@ -1040,7 +1059,7 @@ def fig_dependence_table(cop_workflows=('0', '1', '10', 'wf_1e', 'wf_4', 'wf_3e'
             if f'{COMPONENTS[0]}–{COMPONENTS[2]}|{COMPONENTS[1]}' in column:
                 tricop = quantify_trivariate_dependence(cop_workflow=workflow)
                 if print_tricop:
-                    print(f'{WORKFLOW_LABELS[workflow]}:\n{tricop.str()} {tricop.taus}\n')
+                    print(f'{WORKFLOW_LABELS[workflow]}:\n{tricop.format()}\n')
                 try:
                     bicop = tricop.pair_copulas[1][0]  # pair copula in 2nd tree of fitted vine copula
                 except IndexError:  # if truncated vine copula, there will be no pair copula in the 2nd tree
@@ -1049,7 +1068,12 @@ def fig_dependence_table(cop_workflows=('0', '1', '10', 'wf_1e', 'wf_4', 'wf_3e'
                 components = tuple(column.split('\n')[0].split('–'))
                 bicop = quantify_bivariate_dependence(cop_workflow=workflow, components=components)
             column_formatted = '$\\bf{'+column.split('\n')[0]+'}$\n'+column.split('\n')[1]  # make first part bold
-            annot_df.loc[workflow, column_formatted] = f'{bicop.str().split(",")[0]},\n{TAU_BOLD} = {bicop.tau:.2f}'
+            bicop_json = json.loads(bicop.to_json())  # get name etc for annotation string
+            if bicop.rotation == 0:
+                annot_str = f'{bicop_json["fam"]},\n{TAU_BOLD} = {bicop.tau:.2f}'
+            else:
+                annot_str = f'{bicop_json["fam"]} {bicop.rotation}°,\n{TAU_BOLD} = {bicop.tau:.2f}'
+            annot_df.loc[workflow, column_formatted] = annot_str
             tau_df.loc[workflow, column_formatted] = bicop.tau
     # Create Figure and Axes
     if all_pairs:
