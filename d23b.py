@@ -584,9 +584,9 @@ def get_ism_corr_df(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
                 ism_corr_df.loc[i, 'Control'] = 'Earth system model'
         # Calculate correlation, using both Pearson's r and Kendall's tau
         r, _ = stats.pearsonr(eais, wais)
-        ism_corr_df.loc[i, "Pearson's r"] = r
+        ism_corr_df.loc[i, "Pearson's r"] = r.round(2)
         tau, _ = stats.kendalltau(eais, wais)
-        ism_corr_df.loc[i, "Kendall's 𝜏"] = tau
+        ism_corr_df.loc[i, "Kendall's 𝜏"] = tau.round(2)
     return ism_corr_df
 
 
