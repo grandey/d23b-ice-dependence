@@ -87,6 +87,7 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    'wf_2e': 'Workflow 2e corr.',
                    'wf_3e': 'Workflow 3e corr.',
                    'S20+P21+L23': 'S20+P21+L23 ensemble corr.',
+                   'S20+P21': 'S20+P21 ensemble corr.',
                    '0': 'Independence',  # idealized indepedence
                    '1': 'Perfect correlation',  # idealized perfect dependence
                    '10': 'Antarctic correlation',  # perfect dependence & independence
@@ -98,15 +99,18 @@ WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GSAT;\nE
                   'wf_3e': '$\\bf{Workflow\ 3e}$\n(Antarctic model ensemble;\nDeConto et al., 2021)',
                   'S20+P21+L23': ('$\\bf{S20\!+\!P21\!+\!L23}$\n(Antarctic model ensemble;\n'
                                   'Seroussi et al., 2020;\nPayne et al., 2021; Li et al., 2023)'),
+                  'S20+P21': ('$\\bf{S20\!+\!P21\!}$\n(Antarctic model ensemble;\n'
+                              'Seroussi et al., 2020; Payne et al., 2021)'),
                   '0': '$\\bf{Independence}$\n(idealized)',
                   '1': '$\\bf{Perfect\ correlation}$\n(idealized)',
                   '10': '$\\bf{Antarctic\ correlation}$\n(idealized)',
                   }  # WORKFLOW_NOTES is used by fig_dependence_table()
 WORKFLOW_COLORS = {'wf_1e': 'darkblue',  # colors used by ax_total_vs_time(), ax_sum_vs_gris_fingerprint()
                    'wf_4': 'darkgreen',
-                   'wf_2e': 'lightred',
+                   'wf_2e': 'tomato',
                    'wf_3e': 'darkred',
                    'S20+P21+L23': 'purple',
+                   'S20+P21': 'violet',
                    '0': 'lightslategrey',
                    '1': 'brown',
                    '10': 'darkorange',
@@ -1033,7 +1037,7 @@ def fig_illustrate_copula():
     return fig
 
 
-def fig_dependence_table(cop_workflows=('0', '1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'S20+P21+L23'),
+def fig_dependence_table(cop_workflows=('S20+P21+L23', 'S20+P21', 'wf_2e', 'wf_3e', 'wf_4', 'wf_1e', '0', '1', '10'),
                          all_pairs=True, print_tricop=True):
     """
     Plot heatmap table of bivariate copulas for AR6 workflows and ISM ensemble.
@@ -1042,7 +1046,7 @@ def fig_dependence_table(cop_workflows=('0', '1', '10', 'wf_1e', 'wf_4', 'wf_3e'
     ----------
     cop_workflows : tuple of str
         AR6 workflows (e.g. 'wf_1e'), ice sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
-        Default is ('0', '1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'S20+P21+L23').
+        Default is ('S20+P21+L23', 'S20+P21', 'wf_2e', 'wf_3e', 'wf_4', 'wf_1e', '0', '1', '10').
     all_pairs : bool
         If True (default), include all pairs of dependencies.
     print_tricop : bool
@@ -1342,8 +1346,8 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     return ax
 
 
-def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'S20+P21+L23'),
-                      ref_workflows=('0', '0', '0', '10', '10', '10'),
+def fig_total_vs_time(cop_workflows=('1', '10', 'S20+P21+L23', 'S20+P21', 'wf_2e', 'wf_3e', 'wf_4', 'wf_1e'),
+                      ref_workflows=('0', '0', '0', '0', '0', '0', '0', '0'),
                       marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
                       thresh_for_timing_diff=None, ylim=(-0.2, 2.0)):
     """
@@ -1354,10 +1358,11 @@ def fig_total_vs_time(cop_workflows=('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'S20+P
     ----------
     cop_workflows : tuple of str
         AR6 workflows (e.g. 'wf_1e'), ice sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
-        Note, these will be plotted in separate panels. Default is ('1', '10', 'wf_1e', 'wf_4', 'wf_3e', 'S20+P21+L23').
+        Note, these will be plotted in separate panels.
+        Default is ('1', '10', 'S20+P21+L23', 'S20+P21', 'wf_2e', 'wf_3e', 'wf_4', 'wf_1e').
     ref_workflows : tuple of str
         Workflows corresponding to the vine copulas to be used as the reference in each panel.
-        Default is ('0', '0', '0', '10', '10', '10').
+        Default is ('0', '0', '0', '0', '0', '0', '0', '0').
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
         corresponding to the component marginals.
