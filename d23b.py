@@ -707,7 +707,7 @@ def quantify_trivariate_dependence(cop_workflow='wf_1e'):
 
 
 @cache
-def sample_trivariate_copula(cop_workflow='wf_1e', n_samples=20000, plot=False):
+def sample_trivariate_copula(cop_workflow='wf_1e', n_samples=1000000, plot=False):
     """
     Sample a vine copula returned by quantify_trivariate_dependence().
 
@@ -717,7 +717,7 @@ def sample_trivariate_copula(cop_workflow='wf_1e', n_samples=20000, plot=False):
         AR6 workflow (e.g. 'wf_1e', default), ISM ensemble (e.g. 'P21+L23'),
         or idealized case (e.g. '10', (pv.BicopFamily.gaussian, 0.5)).
     n_samples : int
-        Number of samples to generate. Default is 20000.
+        Number of samples to generate. Default is 1,000,000.
     plot : bool
         Plot the simulated data? Default is False.
 
@@ -729,6 +729,7 @@ def sample_trivariate_copula(cop_workflow='wf_1e', n_samples=20000, plot=False):
     # Get vine copula
     tricop = quantify_trivariate_dependence(cop_workflow=cop_workflow)
     # Simulate data
+    print(f'sample_trivariate_copula({cop_workflow}, {n_samples}, {plot}): drawing {n_samples} samples')
     u_n3 = tricop.simulate(n=n_samples, seeds=[1, 2, 3, 4, 5])
     # Plot?
     if plot:
@@ -741,7 +742,7 @@ def sample_trivariate_copula(cop_workflow='wf_1e', n_samples=20000, plot=False):
 @cache
 def sample_trivariate_distribution(cop_workflow='wf_1e',
                                    marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
-                                   plot=False):
+                                   sample_repeats=50, plot=False):
     """
     Sample EAIS-WAIS-GrIS joint distribution.
 
@@ -757,6 +758,8 @@ def sample_trivariate_distribution(cop_workflow='wf_1e',
         Scenario to use for the component marginals. Options are 'ssp126' and 'ssp585' (default).
     marg_year : int
         Year to use for the component marginals. Default is 2100.
+    sample_repeats : int or None
+        Number of times to duplicate the 20,000 AR6 samples. Default is 50 (corresponding to 1 million samples total).
     plot : bool
         Plot the joint distribution? Default is False.
 
@@ -776,6 +779,8 @@ def sample_trivariate_distribution(cop_workflow='wf_1e',
         qf_da = get_component_qf(workflow=marg_workflow, component=component, scenario=marg_scenario, year=marg_year)
         marginals.append(qf_da.data)
     marg_n3 = np.stack(marginals, axis=1)  # marginal array with shape (n_samples, 3)
+    if sample_repeats:  # duplicate samples to increase n_samples?
+        marg_n3 = np.tile(marg_n3, (sample_repeats, 1))
     n_samples = marg_n3.shape[0]
     # Sample copula
     u_n3 = sample_trivariate_copula(cop_workflow=cop_workflow, n_samples=n_samples)
@@ -783,6 +788,7 @@ def sample_trivariate_distribution(cop_workflow='wf_1e',
     x_n3 = np.transpose(np.asarray([np.quantile(marg_n3[:, i], u_n3[:, i]) for i in range(3)]))
     # Convert to DataFrame
     trivariate_df = pd.DataFrame(x_n3, columns=components)
+    trivariate_df = trivariate_df.astype(np.float32)  # use single precision
     # Plot?
     if plot:
         sns.pairplot(trivariate_df, kind='hist')
@@ -930,7 +936,8 @@ def fig_illustrate_copula():
     u_nm = sample_trivariate_copula(cop_workflow=cop_workflow, n_samples=20000)
     u_df = pd.DataFrame(u_nm, columns=COMPONENTS)
     x_df = sample_trivariate_distribution(cop_workflow=cop_workflow,
-                                          marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100)
+                                          marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
+                                          sample_repeats=None)
     # 1st component plot: bivariate joint distribution (with marginals)
     sns.set_style('ticks')
     g = sns.jointplot(x_df, x=COMPONENTS[0], y=COMPONENTS[1], kind='kde', cmap='Greens', fill=True,
@@ -1129,7 +1136,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), color
     if ax is None:
         fig, ax = plt.subplots(1, 1)
     # For each copula, calculate total ice sheet contribution for different tau values and plot median & 5th-95th
-    tau_t = np.linspace(0, 1, 51)  # tau values to use
+    tau_t = np.linspace(0, 1, 21)  # tau values to use (every 0.05)
     p95_t_list = []  # list to hold 95th percentile arrays
     for family, color, hatch, linestyle, linewidth in zip(families, colors, ('//', r'\\'), ('--', '-.'), (3, 2)):
         label = family.name.capitalize()
@@ -1155,9 +1162,9 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), color
         p95_max = p95_t[-1]
         for p95 in [p95_min, p95_max]:
             ax.axhline(p95, alpha=0.3, color='k', linestyle=':')
-    else:  # if plotting two or more families, use the diff at tau = 0.5 (middle index of 25)
-        p95_min = min([p95_t[25] for p95_t in p95_t_list])
-        p95_max = max([p95_t[25] for p95_t in p95_t_list])
+    else:  # if plotting two or more families, use the diff at tau = 0.5 (middle index of 10)
+        p95_min = min([p95_t[10] for p95_t in p95_t_list])
+        p95_max = max([p95_t[10] for p95_t in p95_t_list])
     p95_diff = p95_max - p95_min  # difference
     p95_perc = 100. * p95_diff / p95_min  # percentage difference
     ax.arrow(0.5, p95_min, 0., p95_diff,  # plot arrow
