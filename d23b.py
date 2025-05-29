@@ -86,8 +86,8 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    'wf_4': 'Workflow 4 corr.',
                    'wf_2e': 'Workflow 2e corr.',
                    'wf_3e': 'Workflow 3e corr.',
-                   'S20+P21+L23': 'S20+P21+L23 ensemble corr.',
-                   'S20+P21': 'S20+P21 ensemble corr.',
+                   'S20+P21+L23': 'Combined ensemble corr.',
+                   'S20+P21': 'ISMIP6 ensemble corr.',
                    '0': 'Independence',  # idealized indepedence
                    '1': 'Perfect correlation',  # idealized perfect dependence
                    '10': 'Antarctic correlation',  # perfect dependence & independence
@@ -95,12 +95,11 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    }
 WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GSAT;\nEdwards et al., 2021)',
                   'wf_4': '$\\bf{Workflow\ 4}$\n(structured expert judgment;\nBamber et al., 2019)',
-                  'wf_2e': '$\\bf{Workflow\ 2e}$\n(Antarctic model ensemble;\nLevermann et al., 2020)',
-                  'wf_3e': '$\\bf{Workflow\ 3e}$\n(Antarctic model ensemble;\nDeConto et al., 2021)',
-                  'S20+P21+L23': ('$\\bf{S20\!+\!P21\!+\!L23}$\n(Antarctic model ensemble;\n'
-                                  'Seroussi et al., 2020;\nPayne et al., 2021; Li et al., 2023)'),
-                  'S20+P21': ('$\\bf{S20\!+\!P21\!}$\n(Antarctic model ensemble;\n'
-                              'Seroussi et al., 2020; Payne et al., 2021)'),
+                  'wf_2e': '$\\bf{Workflow\ 2e}$\n(basal melt emulator;\nLevermann et al., 2020)',
+                  'wf_3e': '$\\bf{Workflow\ 3e}$\n(perturbed parameter;\nDeConto et al., 2021)',
+                  'S20+P21+L23': ('$\\bf{Combined ensemble}$\n(Seroussi et al., 2020;\n'
+                                  'Payne et al., 2021; Li et al., 2023)'),
+                  'S20+P21': '$\\bf{ISMIP6 ensemble}$\n(Seroussi et al., 2020;\nPayne et al., 2021)',
                   '0': '$\\bf{Independence}$\n(idealized)',
                   '1': '$\\bf{Perfect\ correlation}$\n(idealized)',
                   '10': '$\\bf{Antarctic\ correlation}$\n(idealized)',
@@ -582,7 +581,7 @@ def get_ism_corr_df(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
                 print(f'Caution: when controlling {control}, residual variance is very small')
             if control == 'ISM':
                 ism_corr_df.loc[i, 'Description'] = 'Partial correlation due to climate uncertainty'
-                ism_corr_df.loc[i, 'Control'] = 'Ice sheet model'
+                ism_corr_df.loc[i, 'Control'] = 'Ice sheet model configuration'
             elif control == 'ESM':
                 ism_corr_df.loc[i, 'Description'] = 'Partial correlation due to process uncertainty'
                 ism_corr_df.loc[i, 'Control'] = 'Earth system model'
@@ -844,7 +843,7 @@ def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', m
         # Title etc
         ax.set_title(f'({chr(97+i)}) {component}')
     # x-axis label and limits
-    axs[-1].set_xlabel(f'Contribution to GMSLR, m')
+    axs[-1].set_xlabel(f'Ice sheet mass loss, m')
     axs[-1].set_xlim([-0.2, 0.8])
     return fig, axs
 
@@ -895,14 +894,19 @@ def fig_ism_ensemble(ensemble='S20+P21+L23', ref_year=2015, target_year=2100, hu
         for ens in ism_df['Ensemble'].unique():
             temp_df = ism_df.loc[ism_df['Ensemble'] == ens]
             n_samples = len(temp_df)
-            ism_df = ism_df.replace(ens, f'{ens} (n = {n_samples})')
+            if ens == 'S20':
+                ism_df = ism_df.replace(ens, f'Seroussi et al. (n = {n_samples})')
+            elif ens == 'P21':
+                ism_df = ism_df.replace(ens, f'Payne et al. (n = {n_samples})')
+            elif ens == 'L23':
+                ism_df = ism_df.replace(ens, f'Li et al. (n = {n_samples})')
     # Create Figure and Axes
-    fig, axs = plt.subplots(1, 2, figsize=(10, 4), tight_layout=True)
+    fig, axs = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
     # (a) WAIS vs EAIS on GMSLR scale (ie sea-level equivalent)
     ax = axs[0]
     sns.scatterplot(ism_df, x='EAIS', y='WAIS', hue=hue, style=style, ax=ax)
-    ax.legend(loc='upper left', fontsize='large', bbox_to_anchor=(1.05, 1), borderaxespad=0.)
-    ax.set_title(f'(a) Sea-level equivalent data')
+    ax.legend(loc='upper left')
+    ax.set_title(f'(a) Sea-level equivalent scale')
     ax.set_xlabel('EAIS, m')
     ax.set_ylabel('WAIS, m')
     ax.set_xlim(-0.1, 0.7)
@@ -916,7 +920,7 @@ def fig_ism_ensemble(ensemble='S20+P21+L23', ref_year=2015, target_year=2100, hu
     u_df = pd.DataFrame({'EAIS': u_n2[:, 0], 'WAIS': u_n2[:, 1],
                          'Ensemble': ism_df['Ensemble'], 'ESM': ism_df['ESM'], 'ISM': ism_df['ISM']})
     sns.scatterplot(u_df, x='EAIS', y='WAIS', hue=hue, style=style, legend=False, ax=ax)
-    ax.set_title(f'(b) Pseudo-copula data')
+    ax.set_title(f'(b) Copula scale')
     ax.set_xlabel('EAIS, unitless')
     ax.set_ylabel('\nWAIS, unitless')
     ax.set_xlim([0, 1])
@@ -1114,7 +1118,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), color
                     marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
                     ax=None):
     """
-    Plot median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs Kendall's tau (x-axis).
+    Plot median and 5th-95th percentile range of total ice sheet mass loss (y-axis) vs Kendall's tau (x-axis).
 
     Parameters
     ----------
@@ -1140,7 +1144,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), color
     # Create axes?
     if ax is None:
         fig, ax = plt.subplots(1, 1)
-    # For each copula, calculate total ice sheet contribution for different tau values and plot median & 5th-95th
+    # For each copula, calculate total ice sheet mass loss for different tau values and plot median & 5th-95th
     tau_t = np.linspace(0, 1, 21)  # tau values to use (every 0.05)
     p95_t_list = []  # list to hold 95th percentile arrays
     for family, color, hatch, linestyle, linewidth in zip(families, colors, ('//', r'\\'), ('--', '-.'), (3, 2)):
@@ -1148,7 +1152,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), color
         p50_t = np.full(len(tau_t), np.nan)  # array to hold median at each tau
         p5_t = np.full(len(tau_t), np.nan)  # 5th percentile
         p95_t = np.full(len(tau_t), np.nan)  # 95th percentile
-        for t, tau in enumerate(tau_t):  # for each tau, calculate total ice sheet contribution
+        for t, tau in enumerate(tau_t):  # for each tau, calculate total ice sheet mass loss
             trivariate_df = sample_trivariate_distribution(cop_workflow=(family, tau),
                                                            marg_workflow=marg_workflow, marg_scenario=marg_scenario,
                                                            marg_year=marg_year)
@@ -1182,7 +1186,7 @@ def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), color
     ax.legend(loc='upper left', fontsize='large')
     ax.set_xlim(tau_t[0], tau_t[-1])
     ax.set_xlabel(f"Kendall's {TAU_BOLD}")
-    ax.set_ylabel(f'Total ice sheet contribution, m')
+    ax.set_ylabel(f'Total ice sheet mass loss, m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(tau_t))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
@@ -1194,7 +1198,7 @@ def fig_total_vs_tau(families_a=(pv.BicopFamily.gaussian, ), families_b=(pv.Bico
                      colors_a=('green', ), colors_b=('darkred', 'blue'),
                      marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100, ylim=(-0.2, 2.7)):
     """
-    Plot figure showing median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs tau (x-axis)
+    Plot figure showing median and 5th-95th percentile range of total ice sheet mass loss (y-axis) vs tau (x-axis)
     for (a) Gaussian pair copulas and (b) Joe & Clayton pair copulas (default).
 
     Parameters
@@ -1240,7 +1244,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
                      marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
                      show_percent_diff=True, thresh_for_timing_diff=(1.4, 0.2), ax=None):
     """
-    Plot median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs time (x-axis).
+    Plot median and 5th-95th percentile range of total ice sheet mass loss (y-axis) vs time (x-axis).
 
     Parameters
     ----------
@@ -1272,11 +1276,11 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
         fig, ax = plt.subplots(1, 1, figsize=(5, 4))
     # List to hold DataFrames created below
     data_dfs = []
-    # For each copula, calculate total ice sheet contribution for different years and plot
+    # For each copula, calculate total ice sheet mass loss for different years and plot
     for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', '..'), ('--', '-.'), (3, 2)):
         # Create DataFrame to hold percentile time series for this copula
         data_df = pd.DataFrame()
-        # For each year, calculate percentiles of total ice sheet contribution
+        # For each year, calculate percentiles of total ice sheet mass loss
         for year in marg_years:
             trivariate_df = sample_trivariate_distribution(cop_workflow=cop_workflow,
                                                            marg_workflow=marg_workflow, marg_scenario=marg_scenario,
@@ -1338,7 +1342,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     # Customize plot
     ax.set_xlim(marg_years[0], marg_years[-1])
     ax.set_xlabel('Year')
-    ax.set_ylabel(f'Total ice sheet contribution, m')
+    ax.set_ylabel(f'Total ice sheet mass loss, m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.MultipleLocator(1))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
@@ -1346,12 +1350,12 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
     return ax
 
 
-def fig_total_vs_time(cop_workflows=('1', '10', 'S20+P21+L23', 'S20+P21', 'wf_2e', 'wf_3e', 'wf_4', 'wf_1e'),
-                      ref_workflows=('0', '0', '0', '0', '0', '0', '0', '0'),
+def fig_total_vs_time(cop_workflows=('1', '10', 'S20+P21+L23', 'S20+P21'),
+                      ref_workflows=('0', '0', '0', '0'),
                       marg_workflow='fusion_1e', marg_scenario='ssp585', marg_years=np.arange(2020, 2101, 10),
                       thresh_for_timing_diff=None, ylim=(-0.2, 2.0)):
     """
-    Plot figure showing median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs time (x-axis)
+    Plot figure showing median and 5th-95th percentile range of total ice sheet mass loss (y-axis) vs time (x-axis)
     for different copulas (in multiple panels).
 
     Parameters
@@ -1359,10 +1363,10 @@ def fig_total_vs_time(cop_workflows=('1', '10', 'S20+P21+L23', 'S20+P21', 'wf_2e
     cop_workflows : tuple of str
         AR6 workflows (e.g. 'wf_1e'), ice sheet model ensemble (e.g. 'P21+L23'), and/or idealized dependence (e.g. '1').
         Note, these will be plotted in separate panels.
-        Default is ('1', '10', 'S20+P21+L23', 'S20+P21', 'wf_2e', 'wf_3e', 'wf_4', 'wf_1e').
+        Default is ('1', '10', 'S20+P21+L23', 'S20+P21').
     ref_workflows : tuple of str
         Workflows corresponding to the vine copulas to be used as the reference in each panel.
-        Default is ('0', '0', '0', '0', '0', '0', '0', '0').
+        Default is ('0', '0', '0', '0').
     marg_workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e', default),
         corresponding to the component marginals.
@@ -1410,7 +1414,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
                                marg_workflow='fusion_1e', marg_scenario='ssp585', marg_year=2100,
                                ax=None):
     """
-    Plot median and 5th-95th percentile range of total ice sheet contribution (y-axis) vs GrIS GRD fingerprint (x-axis).
+    Plot median and 5th-95th percentile range of total ice sheet mass loss (y-axis) vs GrIS GRD fingerprint (x-axis).
 
     Parameters
     ----------
@@ -1439,7 +1443,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     eais_fp = 1.10
     wais_fp = 1.15
     gris_fp_g = np.arange(-1.8, 1.21, 0.05)  # _g indicates GrIS fingerprint dimension
-    # For each copula, calculate total ice sheet contribution for different GrIS fingerprints and plot median & 5th-95th
+    # For each copula, calculate total ice sheet mass loss for different GrIS fingerprints and plot median & 5th-95th
     for cop_workflow, hatch, linestyle, linewidth in zip(cop_workflows, ('//', '..'), ('--', '-.'), (3, 2)):
         # Get trivariate distribution data for global mean (ie fingerprints all 1.0)
         x_df = sample_trivariate_distribution(cop_workflow=cop_workflow,
@@ -1447,7 +1451,7 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
                                               marg_year=marg_year)
         # Create DataFrame to hold percentile data across GrIS fingerprints
         data_df = pd.DataFrame()
-        # Loop over GrIS fingerprints and calculate 5th, 50th, and 95th percentiles of total ice sheet contribution
+        # Loop over GrIS fingerprints and calculate 5th, 50th, and 95th percentiles of total ice sheet mass loss
         for gris_fp in gris_fp_g:
             sum_ser = eais_fp * x_df['EAIS'] + wais_fp * x_df['WAIS'] + gris_fp * x_df['GrIS']
             for perc in (5, 50, 95):
@@ -1463,11 +1467,11 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     ax.legend(loc='upper left', framealpha=1, fontsize='large')
     ax.set_xlim(gris_fp_g[0], gris_fp_g[-1])
     ax.set_xlabel('Fingerprint of GrIS')
-    ax.set_ylabel(f'Total ice sheet contribution, m')
+    ax.set_ylabel(f'Total ice sheet mass loss, m')
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(gris_fp_g))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
-    ax.set_title('Ice sheet contribution to RSLC vs fingerprint of GrIS')
+    ax.set_title('Total ice sheet contribution vs fingerprint of GrIS')
     # Annotations
     ax.text(1, -0.15, f'Fingerprint of EAIS = {eais_fp:.2f}\nFingerprint of WAIS = {wais_fp:.2f}',
             transform=ax.transAxes, ha='right', va='bottom')
