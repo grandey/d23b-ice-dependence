@@ -97,9 +97,9 @@ WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GSAT;\nE
                   'wf_4': '$\\bf{Workflow\ 4}$\n(structured expert judgment;\nBamber et al., 2019)',
                   'wf_2e': '$\\bf{Workflow\ 2e}$\n(basal melt emulator;\nLevermann et al., 2020)',
                   'wf_3e': '$\\bf{Workflow\ 3e}$\n(perturbed parameter;\nDeConto et al., 2021)',
-                  'S20+P21+L23': ('$\\bf{Combined ensemble}$\n(Seroussi et al., 2020;\n'
+                  'S20+P21+L23': ('$\\bf{Combined\ ensemble}$\n(Seroussi et al., 2020;\n'
                                   'Payne et al., 2021; Li et al., 2023)'),
-                  'S20+P21': '$\\bf{ISMIP6 ensemble}$\n(Seroussi et al., 2020;\nPayne et al., 2021)',
+                  'S20+P21': '$\\bf{ISMIP6\ ensemble}$\n(Seroussi et al., 2020;\nPayne et al., 2021)',
                   '0': '$\\bf{Independence}$\n(idealized)',
                   '1': '$\\bf{Perfect\ correlation}$\n(idealized)',
                   '10': '$\\bf{Antarctic\ correlation}$\n(idealized)',
@@ -109,7 +109,7 @@ WORKFLOW_COLORS = {'wf_1e': 'darkblue',  # colors used by ax_total_vs_time(), ax
                    'wf_2e': 'tomato',
                    'wf_3e': 'darkred',
                    'S20+P21+L23': 'purple',
-                   'S20+P21': 'violet',
+                   'S20+P21': 'blue',
                    '0': 'lightslategrey',
                    '1': 'brown',
                    '10': 'darkorange',
