@@ -88,7 +88,7 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    'wf_3e': 'Workflow 3e corr.',
                    'S20+P21+L23': 'Combined ensemble corr.',
                    'S20+P21': 'ISMIP6 ensemble corr.',
-                   '0': 'Independence',  # idealized indepedence
+                   '0': 'Independence',  # idealized independence
                    '1': 'Perfect correlation',  # idealized perfect dependence
                    '10': 'Antarctic correlation',  # perfect dependence & independence
                    '01': f'{COMPONENTS[1]}–{COMPONENTS[2]} perfect corr.',  # independence & perfect dependence
@@ -1313,7 +1313,7 @@ def ax_total_vs_time(cop_workflows=('wf_3e', '0'),
                 percent_str = f'{percent_diff:+.1f} %'
             ax.text(year+2.5, np.mean([val1, val0]), percent_str,  # annotate with percentage diff
                     color='k', va='center', ha='left', fontsize='large')
-            print(f'{cop_workflows}, {perc}th: {val0:.1f} - {val1:.1f} = {diff:.1f} m ({percent_str})')  # print values
+            print(f'{cop_workflows}, {perc}th: {val0:.2f} - {val1:.2f} = {diff:.2f} m ({percent_str})')  # print values
     # Plot lines showing timing differences?
     if thresh_for_timing_diff:
         # Select thresholds automatically?
