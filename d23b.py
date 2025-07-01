@@ -141,7 +141,7 @@ def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year
     component : str
         Component of GMSLR. Options are 'EAIS' (East Antarctic Ice Sheet, default),
         'WAIS' (West Antarctic Ice Sheet), 'GrIS' (Greenland Ice Sheet), and 'GMSLR' (total GMSLR).
-        Note: for wf_1e, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
+        Note: for wf_1e and wf_2e, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
     scenario : str
         Options are 'ssp126' and 'ssp585' (default).
     year : int
@@ -313,9 +313,10 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
                     in_df = pd.read_fwf(in_fn, skiprows=1, index_col='time')
                 except ValueError:
                     in_df = pd.read_fwf(in_fn, skiprows=2, index_col='time')
-                # Get SLE for target year relative to reference year for WAIS and EAIS; remember sign
-                for region_name, in_varname in [ ('EAIS', 'eofe(m)'), ('WAIS', 'eofw(m)')]:
-                    ais_dict[region_name] = in_df.loc[ref_year][in_varname] - in_df.loc[target_year][in_varname]
+                # Get SLE for target year relative to reference year for WAIS and EAIS; invert sign
+                for region_name, in_varname in [ ('EAIS', 'eofe(m)'),  # sea-level equivalent change in ice sheet
+                                                 ('WAIS', 'eofw(m)')]:
+                    ais_dict[region_name] = -1. * (in_df.loc[target_year][in_varname] - in_df.loc[ref_year][in_varname])
                 # Append to DataFrame
                 ism_df.loc[len(ism_df)] = ais_dict
     # Add GrIS column for convenience, enabling fitting of vine copula below, with GrIS independent of EAIS and WAIS
@@ -428,6 +429,7 @@ def get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year
     ----------
     workflow : str
         AR6 workflow (e.g. 'wf_1e', default), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e').
+        Note: 'wf_2e' is unsupported.
     component : str
         Component of GMSLR. Options are 'EAIS' (East Antarctic Ice Sheet, default),
         'WAIS' (West Antarctic Ice Sheet), 'GrIS' (Greenland Ice Sheet), and 'GMSLR' (total GMSLR).
@@ -487,11 +489,8 @@ def get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year
         outer_da = get_component_qf(workflow='outer', component=component, scenario=scenario, year=year)
         # Triangular weighting function, with weights depending on probability p
         w_da = get_fusion_weights()
-        # Derive fusion distribution; rely on automatic broadcasting/alignment
+        # Derive fusion distribution; rely on automatic broadcasting/alignment; no need to correct median (see Case 3)
         qf_da = w_da * pref_da + (1 - w_da) * outer_da
-        # # No need to correct median (see Case 3 above)
-        # med_idx = len(qf_da) // 2  # index corresponding to median
-        # qf_da[med_idx] = pref_da[med_idx]  # median follows preferred workflow
     else:
         raise ValueError(f'Unrecognised parameter value: workflow={workflow}')
     # Plot?
