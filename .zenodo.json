@@ -1,5 +1,5 @@
 {
-  "title": "Analysis Code for Modelling Correlation Among the Ice Sheet Components of Sea-Level Rise (d23b-ice-dependence)",
+  "title": "Analysis code for Correlated uncertainties in projections of ice loss from Antarctica and Greenland (d23b-ice-dependence)",
   "creators": [
     {
       "orcid": "0000-0003-1442-0906",
@@ -19,7 +19,7 @@
       "name": "Koh, Zhi Yang"
     },
     {
-      "affiliation": "Earth Observatory of Singapore, Nanyang Technological University, Singapore",
+      "affiliation": "School of Energy and the Environment, City University of Hong Kong, Hong Kong",
       "type": "Other",
       "name": "Horton, Benjamin P."
     },
@@ -37,5 +37,5 @@
   "upload_type": "software",
   "license": "MIT",
   "access_right": "open",
-  "description": "<p>This repository accompanies the following manuscript:\nB. S. Grandey, S. Jevrejeva, Z. Y. Koh, B. P. Horton, J. Dauwels, and L. Y. Chew, Modelling Correlation Among the Ice Sheet Components of Sea-Level Rise.\nFor further details, see README.md. For the most recent version of the repository, visit https://github.com/grandey/d23b-ice-dependence/.</p>"
+  "description": "<p>This repository accompanies the following manuscript:\nB. S. Grandey, S. Jevrejeva, Z. Y. Koh, B. P. Horton, J. Dauwels, and L. Y. Chew, Correlated uncertainties in projections of ice loss from Antarctica and Greenland.\nFor further details, see README.md. For the most recent version of the repository, visit https://github.com/grandey/d23b-ice-dependence/.</p>"
 }
