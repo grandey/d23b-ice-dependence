@@ -8,7 +8,7 @@ This repository accompanies the following manuscript:
 B. S. Grandey, S. Jevrejeva, Z. Y. Koh, B. P. Horton, J. Dauwels, and L. Y. Chew,  **Correlated uncertainties in projections of ice loss from Antarctica and Greenland**.
 
 The manuscript serves as the primary reference.
-The Zenodo archive of this repository will serve as a secondary reference.
+The Zenodo archive of this repository serves as a secondary reference.
 
 ## Workflow
 
