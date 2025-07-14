@@ -3,7 +3,7 @@ d23b:
     Functions that support the analysis contained in the d23b-ice-dependence repository.
 
 Author:
-    Benjamin S. Grandey, 2023-2024.
+    Benjamin S. Grandey, 2023-2025.
 """
 
 
@@ -141,7 +141,7 @@ def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year
     component : str
         Component of GMSLR. Options are 'EAIS' (East Antarctic Ice Sheet, default),
         'WAIS' (West Antarctic Ice Sheet), 'GrIS' (Greenland Ice Sheet), and 'GMSLR' (total GMSLR).
-        Note: for wf_1e and wf_2e, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
+        Note, for wf_1e and wf_2e, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
     scenario : str
         Options are 'ssp126' and 'ssp585' (default).
     year : int
@@ -251,7 +251,7 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
                 ais_dict['ISM'] = ism_info
                 # Read DataSet
                 in_ds = xr.load_dataset(in_fn, decode_times=False)
-                # Calculate SLE for target year relative to reference year for EAIS and WAIS; remember sign
+                # Calculate SLE for target year relative to reference year for EAIS and WAIS; invert sign
                 eais_da = in_ds[f'ivaf_region_{2}']
                 wais_da = in_ds[f'ivaf_region_{1}'] + in_ds[f'ivaf_region_{3}']  # include peninsula in WAIS
                 try:
@@ -263,8 +263,8 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
                     if ref_year == 2015:
                         ais_dict[region_name] = -1. * float(in_da.sel(time=target_year)) * ice_density * CONVERT_GT_M
                     else:
-                        ais_dict[region_name] = float(in_da.sel(time=ref_year) -
-                                                      in_da.sel(time=target_year)) * ice_density * CONVERT_GT_M
+                        ais_dict[region_name] = -1. * float(in_da.sel(time=target_year) -
+                                                            in_da.sel(time=ref_year)) * ice_density * CONVERT_GT_M
                 # Append to DataFrame
                 ism_df.loc[len(ism_df)] = ais_dict
     # Payne et al. data
@@ -285,15 +285,15 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
                 ais_dict['ISM'] = ism_info
                 # Read DataSet
                 in_ds = xr.load_dataset(in_fn, decode_times=False)
-                # Calculate SLE for target year relative to reference year for EAIS and WAIS; remember sign
+                # Calculate SLE for target year relative to reference year for EAIS and WAIS; invert sign
                 eais_da = in_ds[f'limnsw_region_{2}']
                 wais_da = in_ds[f'limnsw_region_{1}'] + in_ds[f'limnsw_region_{3}']  # include peninsula in WAIS
                 for region_name, in_da in [('EAIS', eais_da), ('WAIS', wais_da)]:
                     if ref_year == 2015:
                         ais_dict[region_name] = -1. * float(in_da.sel(time=target_year)) * CONVERT_GT_M
                     else:
-                        ais_dict[region_name] = float(in_da.sel(time=ref_year) -
-                                                      in_da.sel(time=target_year)) * CONVERT_GT_M
+                        ais_dict[region_name] = -1. * float(in_da.sel(time=target_year) -
+                                                            in_da.sel(time=ref_year)) * CONVERT_GT_M
                 # Append to DataFrame
                 ism_df.loc[len(ism_df)] = ais_dict
     # Li et al. data
@@ -319,7 +319,7 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
                     ais_dict[region_name] = -1. * (in_df.loc[target_year][in_varname] - in_df.loc[ref_year][in_varname])
                 # Append to DataFrame
                 ism_df.loc[len(ism_df)] = ais_dict
-    # Add GrIS column for convenience, enabling fitting of vine copula below, with GrIS independent of EAIS and WAIS
+    # Include GrIS column for convenience, enabling fitting of vine copula below, with GrIS independent of EAIS and WAIS
     ism_df['GrIS'] = 0.
     # Return result
     return ism_df
@@ -367,7 +367,7 @@ def read_gauge_grd(gauge='TANJONG_PAGAR'):
     Parameters
     ----------
     gauge : int or str
-        ID or name of gauge. Default is 'TANJONG_PAGAR' (equivalent to 1746)
+        ID or name of gauge. Default is 'TANJONG_PAGAR' (equivalent to 1746).
 
     Returns
     ----------
@@ -429,11 +429,11 @@ def get_component_qf(workflow='wf_1e', component='EAIS', scenario='ssp585', year
     ----------
     workflow : str
         AR6 workflow (e.g. 'wf_1e', default), p-box bound ('lower', 'upper', 'outer'), or fusion (e.g. 'fusion_1e').
-        Note: 'wf_2e' is unsupported.
+        Note, 'wf_2e' is unsupported.
     component : str
         Component of GMSLR. Options are 'EAIS' (East Antarctic Ice Sheet, default),
         'WAIS' (West Antarctic Ice Sheet), 'GrIS' (Greenland Ice Sheet), and 'GMSLR' (total GMSLR).
-        Note: for wf_1e, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
+        Note, for wf_1e, 'PEN' (Antarctic peninsula) is also included in 'WAIS'.
     scenario : str
         Options are 'ssp126' and 'ssp585' (default).
     year : int
@@ -825,8 +825,7 @@ def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', m
         # Get marginal quantile function containing marginal samples
         qf_da = get_component_qf(workflow=marg_workflow, component=component, scenario=marg_scenario, year=marg_year)
         # Plot KDE
-        sns.kdeplot(qf_da, bw_adjust=0.3, color='b', fill=True, cut=0,  # limit to data limits
-                    ax=ax)
+        sns.kdeplot(qf_da, bw_adjust=0.3, color='b', fill=True, cut=0, ax=ax)  # limit to data limits
         # Plot 5th, 50th, and 95th percentiles
         y_pos = 13  # position of percentile whiskers is tuned for the default parameters
         ax.plot([qf_da.quantile(p) for p in (0.05, 0.95)], [y_pos, y_pos], color='g', marker='|')
@@ -837,7 +836,7 @@ def fig_component_marginals(marg_workflow='fusion_1e', marg_scenario='ssp585', m
         # Skewness and kurtosis
         ax.text(0.75, 6.5,  # position tuned for the default parameters
                 f"Skewness = {stats.skew(qf_da):.1f}\n"
-                f"Fisher's kurtosis = {stats.kurtosis(qf_da, fisher=True):0.1f}",
+                f"Fisher's kurtosis = {stats.kurtosis(qf_da, fisher=True):.1f}",
                 ha='right', va='center', fontsize='medium', bbox=dict(boxstyle='square,pad=0.5', fc='1', ec='0.85'))
         # Title etc
         ax.set_title(f'({chr(97+i)}) {component}')
@@ -1470,7 +1469,6 @@ def ax_sum_vs_gris_fingerprint(cop_workflows=('1', '0'),
     ax.yaxis.set_minor_locator(plt.MultipleLocator(0.1))
     ax.xaxis.set_minor_locator(plt.FixedLocator(gris_fp_g))
     ax.tick_params(which='minor', direction='in', color='0.7', bottom=True, top=True, left=True, right=True)
-    ax.set_title('Total ice sheet contribution vs fingerprint of GrIS')
     # Annotations
     ax.text(1, -0.15, f'Fingerprint of EAIS = {eais_fp:.2f}\nFingerprint of WAIS = {wais_fp:.2f}',
             transform=ax.transAxes, ha='right', va='bottom')
