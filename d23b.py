@@ -3,7 +3,7 @@ d23b:
     Functions that support the analysis contained in the d23b-ice-dependence repository.
 
 Author:
-    Benjamin S. Grandey, 2023-2025.
+    Benjamin S. Grandey, 2023-2026.
 """
 
 
@@ -1052,7 +1052,7 @@ def fig_dependence_table(cop_workflows=('S20+P21+L23', 'S20+P21', 'wf_2e', 'wf_3
     all_pairs : bool
         If True (default), include all pairs of dependencies.
     print_tricop : bool
-        If True (default), print the corresponding trivariate vine copula, to check for conistency with table.
+        If True (default), print the corresponding trivariate vine copula, to check for consistency with table.
 
     Returns
     -------
