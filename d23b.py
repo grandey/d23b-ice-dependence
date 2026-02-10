@@ -551,12 +551,12 @@ def get_ism_corr_df(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
     target_year : int
         Target year for difference. Default is 2100.
 
-    Returns:
-    --------
+    Returns
+    -------
     ism_corr_df : pandas.DataFrame
 
-    Note:
-    -----
+    Note
+    ----
     Partial correlation is estimated using a residual-based approximation.
     The effects of the controlling categorical variable (ESM or ISM) are first removed using linear regression.
     """
@@ -593,15 +593,18 @@ def get_ism_corr_df(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
 
 
 @cache
-def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAIS')):
+def quantify_bivariate_dependence(cop_workflow='wf_1e', year=2100, components=('EAIS', 'WAIS')):
     """
-    Quantify dependence between two ice sheet components by fitting a bivariate copula to the year-2100 SSP5-8.5 data.
+    Quantify dependence between two ice sheet components by fitting a bivariate copula, calculating Kendall's tau,
+    and calculating Pearson's r using the SSP5-8.5 data for a given workflow/ensemble and year.
 
     Parameters
     ----------
     cop_workflow : str
         AR6 workflow (e.g. 'wf_1e', default), ice sheet model ensemble (e.g. 'P21+L23'), or idealized dependence
-        (e.g. '1'), for which to fit/specify the bivariate copula.
+        (e.g. '1') to use.
+    year : int
+        Year. Default is 2100.
     components : tuple of str
         Two ice sheet components. Default is ('EAIS', 'WAIS').
 
@@ -609,6 +612,10 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
     -------
     bicop : pv.Bicop
         Fitted bivariate copula (limited to single-parameter families).
+    tau : float
+        Kendall's tau (calculated using the sample).
+    r : float
+        Pearson's r (calculated using the sample).
     """
     # Check that two and only two components have been specified
     if len(components) != 2:
@@ -617,12 +624,16 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
     if cop_workflow in ('0', '1', '10', '01'):
         if cop_workflow == '1':  # perfect dependence
             bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=np.array([[1.0]]))
+            tau, r = 1., 1.
         elif cop_workflow == '10' and components == tuple(COMPONENTS[:2]):  # perfect dep. between 1st & 2nd components
             bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=np.array([[1.0]]))
+            tau, r = 1., 1.
         elif cop_workflow == '01' and components == tuple(COMPONENTS[1:]):  # perfect dep. between 2nd & 3rd components
             bicop = pv.Bicop(family=pv.BicopFamily.gaussian, parameters=np.array([[1.0]]))
+            tau, r = 1., 1.
         else:  # independence
             bicop = pv.Bicop(family=pv.BicopFamily.indep)
+            tau, r = 0., 0.
     # Case 2: quantify dependence by fitting copula to samples
     else:
         # Read samples
@@ -630,10 +641,10 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
         for component in components:
             if 'wf' in cop_workflow:  # if workflow, read samples DataArray and extract data
                 samples = read_ar6_samples(workflow=cop_workflow, component=component, scenario='ssp585',
-                                           year=2100).data
+                                           year=year).data
             else:  # if ISM ensemble, read samples DataFrame and extract data
                 samples = read_ism_ensemble_data(ensemble=cop_workflow, ref_year=2015,
-                                                 target_year=2100)[component].values
+                                                 target_year=year)[component].values
             samples_list.append(samples)
         # Fit copula (limited to single-parameter families)
         x_n2 = np.stack(samples_list, axis=1)
@@ -642,8 +653,11 @@ def quantify_bivariate_dependence(cop_workflow='wf_1e', components=('EAIS', 'WAI
                                                    pv.BicopFamily.gaussian, pv.BicopFamily.frank,
                                                    pv.BicopFamily.clayton])
         bicop = pv.Bicop.from_data(u_n2, controls=controls)  # fit
+        # Calculate Kendall's tau and Pearson's r
+        tau, _ = stats.kendalltau(samples_list[0], samples_list[1])
+        r, _ = stats.pearsonr(samples_list[0], samples_list[1])
     # Return result
-    return bicop
+    return bicop, tau, r
 
 
 @cache
@@ -1080,7 +1094,7 @@ def fig_dependence_table(cop_workflows=('S20+P21+L23', 'S20+P21', 'wf_2e', 'wf_3
                     bicop = pv.Bicop(family=pv.BicopFamily.indep)
             else:
                 components = tuple(column.split('\n')[0].split('–'))
-                bicop = quantify_bivariate_dependence(cop_workflow=workflow, components=components)
+                bicop = quantify_bivariate_dependence(cop_workflow=workflow, year=2100, components=components)[0]
             column_formatted = '$\\bf{'+column.split('\n')[0]+'}$\n'+column.split('\n')[1]  # make first part bold
             bicop_json = json.loads(bicop.to_json())  # get name etc for annotation string
             if bicop.rotation == 0:
