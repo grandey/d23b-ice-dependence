@@ -88,6 +88,7 @@ WORKFLOW_LABELS = {'wf_1e': 'Workflow 1e corr.',  # labels of "workflows" used f
                    'wf_3e': 'Workflow 3e corr.',
                    'S20+P21+L23': 'Combined ensemble corr.',
                    'S20+P21': 'ISMIP6 ensemble corr.',
+                   'L23': 'L23 ensemble corr.',
                    '0': 'Independence',  # idealized independence
                    '1': 'Perfect correlation',  # idealized perfect dependence
                    '10': 'Antarctic correlation',  # perfect dependence & independence
@@ -100,6 +101,7 @@ WORKFLOW_NOTES = {'wf_1e': '$\\bf{Workflow\ 1e}$\n(shared dependence on GSAT;\nE
                   'S20+P21+L23': ('$\\bf{Combined\ ensemble}$\n(Seroussi et al., 2020;\n'
                                   'Payne et al., 2021; Li et al., 2023)'),
                   'S20+P21': '$\\bf{ISMIP6\ ensemble}$\n(Seroussi et al., 2020;\nPayne et al., 2021)',
+                  'L23': '$\\bf{L23\ ensemble}$\n(Li. et al., 2023)',
                   '0': '$\\bf{Independence}$\n(idealized)',
                   '1': '$\\bf{Perfect\ correlation}$\n(idealized)',
                   '10': '$\\bf{Antarctic\ correlation}$\n(idealized)',
@@ -110,6 +112,7 @@ WORKFLOW_COLORS = {'wf_1e': 'darkblue',  # colors used by ax_total_vs_time(), ax
                    'wf_3e': 'darkred',
                    'S20+P21+L23': 'purple',
                    'S20+P21': 'blue',
+                   'L23': 'red',
                    '0': 'lightslategrey',
                    '1': 'brown',
                    '10': 'darkorange',
@@ -1124,6 +1127,54 @@ def fig_dependence_table(cop_workflows=('S20+P21+L23', 'S20+P21', 'wf_2e', 'wf_3
     cbar.set_ticks([-1., 0., 1.])
     cbar.set_label(f'Kendall\'s {TAU_BOLD}', size='large')
     return fig, ax
+
+
+def fig_corr_vs_time():
+    """
+    Plot (a) Pearson's r and (b) Kendall's τ vs time for the ISM ensembles and IPCC AR6 workflows.
+
+    Returns
+    -------
+    fig : Figure
+    axs : array of Axes
+    """
+    # Create Figure and Axes
+    fig, axs = plt.subplots(1, 2, figsize=(10, 4), tight_layout=True)
+    # Loop over ensembles and AR6 workflows
+    for cop_workflow in ['S20+P21+L23', 'S20+P21', 'L23', 'wf_1e', 'wf_2e', 'wf_3e', 'wf_4']:
+        # Create Series to hold Pearson's r and Kendall's tau for different years
+        r_ser = pd.Series()
+        tau_ser = pd.Series()
+        # Loop over years
+        for year in np.arange(2050, 2101, 10):
+            _, tau, r = quantify_bivariate_dependence(cop_workflow=cop_workflow, year=year)
+            r_ser[year] = r
+            tau_ser[year] = tau
+        # Plot Pearson's r and Kendall's tau vs time
+        if cop_workflow[0:3] == 'wf_':
+            linestyle = '--'
+            alpha = 0.3
+        elif cop_workflow == 'S20+P21+L23':
+            linestyle = '-'
+            alpha = 1.
+        else:
+            linestyle = '-.'
+            alpha = 1.
+        axs[0].plot(r_ser, linestyle=linestyle, alpha=alpha, color=WORKFLOW_COLORS[cop_workflow],
+                    label=WORKFLOW_LABELS[cop_workflow].rstrip(' corr.'))
+        axs[1].plot(tau_ser, linestyle=linestyle, alpha=alpha, color=WORKFLOW_COLORS[cop_workflow],
+                    label=WORKFLOW_LABELS[cop_workflow].rstrip(' corr.'))
+    # Customise plot
+    axs[0].legend()
+    for ax in axs:
+        ax.set_xlabel('Year')
+        ax.set_xlim([2050, 2100])
+        ax.set_ylim([-0.1, 1])
+    axs[0].set_ylabel('Pearson\'s r')
+    axs[0].set_title('(a) Pearson\'s r')
+    axs[1].set_ylabel(f'Kendall\'s {TAU_BOLD}')
+    axs[1].set_title(f'(b) Kendall\'s {TAU_BOLD}')
+    return fig, axs
 
 
 def ax_total_vs_tau(families=(pv.BicopFamily.joe, pv.BicopFamily.clayton), colors=('darkred', 'blue'),
