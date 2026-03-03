@@ -27,18 +27,19 @@ The analysis code requires
 (i) the global-mean sea-level data samples and tide gauge location data from the [IPCC AR6 Sea Level Projections](https://doi.org/10.5281/zenodo.6382554),
 (ii) the "ComputedScalarsPaper" ISM data from [Seroussi et al., 2020)](https://doi.org/10.5281/zenodo.3940766),
 (iii) the "CMIP5_CMIP6_Scalars_Paper" ISM data from [Payne et al. (2021)](https://doi.org/10.5281/zenodo.4498331),
-(iv) the "CMIP6_BC_1850-2100" ISM data from [Li et al. (2023)](https://doi.org/10.5281/zenodo.7380180), and
+(iv) the "CMIP6_BC_1850-2100" and "CMIP6_BC_1850-2100_NO_MICI" ISM data from [Li et al. (2023)](https://doi.org/10.5281/zenodo.7380180), and
 (v) the GRD fingerprints from the [FACTS module data](https://doi.org/10.5281/zenodo.7478192).
 These can be downloaded as follows:
 
 ```
 mkdir data
 cd data
-curl -Z "https://zenodo.org/records/6382554/files/ar6.zip?download=1" -O "https://zenodo.org/records/6382554/files/location_list.lst?download=1" -O "https://zenodo.org/records/3940766/files/ComputedScalarsPaper.zip?download=1" -O "https://zenodo.org/records/4498331/files/CMIP5_CMIP6_Scalars_Paper.zip?download=1" -O "https://zenodo.org/records/7380180/files/CMIP6_BC_1850-2100.tar.gz?download=1" -O "https://zenodo.org/records/7478192/files/grd_fingerprints_data.tgz?download=1" -O
+curl -Z "https://zenodo.org/records/6382554/files/ar6.zip?download=1" -O "https://zenodo.org/records/6382554/files/location_list.lst?download=1" -O "https://zenodo.org/records/3940766/files/ComputedScalarsPaper.zip?download=1" -O "https://zenodo.org/records/4498331/files/CMIP5_CMIP6_Scalars_Paper.zip?download=1" -O "https://zenodo.org/records/7380180/files/CMIP6_BC_1850-2100.tar.gz?download=1" -O "https://zenodo.org/records/7380180/files/CMIP6_BC_1850-2100_NO_MICI.tar.gz?download=1" -O "https://zenodo.org/records/7478192/files/grd_fingerprints_data.tgz?download=1" -O
 unzip ar6.zip
 unzip ComputedScalarsPaper.zip
 unzip CMIP5_CMIP6_Scalars_Paper.zip
 tar -xvzf CMIP6_BC_1850-2100.tar.gz
+tar -xvzf CMIP6_BC_1850-2100_NO_MICI.tar.gz
 mkdir grd_fingerprints_data/
 tar -xvzf grd_fingerprints_data.tgz -C grd_fingerprints_data/
 cd ..

@@ -302,7 +302,7 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
     # Li et al. data
     elif ensemble == 'L23':
         # Loop over experiments
-        exp_list = ['CMIP6_BC_1850-2100',]
+        exp_list = ['CMIP6_BC_1850-2100', 'CMIP6_BC_1850-2100_NO_MICI']
         for exp in exp_list:
             print(f'Reading {ensemble} {exp} data.')
             # Loop over available input files for different ESMs
@@ -310,7 +310,14 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
             in_fns = sorted(in_dir.glob('*/fort.22'))
             for in_fn in in_fns:
                 # Create dictionary to hold data for this input file, including model info
-                ais_dict = {'Ensemble': ensemble, 'Exp': exp, 'ESM': str(in_fn).split('/')[-2], 'ISM': 'L23_MICI'}
+                if exp == 'CMIP6_BC_1850-2100':
+                    ism_info = 'L23_MICI'
+                elif exp == 'CMIP6_BC_1850-2100_NO_MICI':
+                    ism_info = 'L23_NO_MICI'
+                else:
+                    print(f'Unknown experiment {exp}')
+                    ism_info = None
+                ais_dict = {'Ensemble': ensemble, 'Exp': exp, 'ESM': str(in_fn).split('/')[-2], 'ISM': 'L23'}
                 # Read data
                 try:
                     in_df = pd.read_fwf(in_fn, skiprows=1, index_col='time')
