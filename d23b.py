@@ -196,7 +196,7 @@ def read_ar6_samples(workflow='wf_1e', component='EAIS', scenario='ssp585', year
 
 
 @cache
-def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
+def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=2100, fully_crossed=True):
     """
     Read Antarctic ISM ensemble data from Seroussi et al. (2020), Payne et al. (2021), and Li et al. (2023).
 
@@ -212,6 +212,10 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
         Reference year. Default is 2015 (which is the start year for the P21 data).
     target_year : int
         Target year for difference. Default is 2100.
+    fully_crossed : bool
+        If True, only return data for ISMs that include every ESM within a given ensemble (S20, P21, or L23).
+        Default is True.
+        Note: a combined ensemble (e.g. S20+P21+L23) will not be fully crossed.
 
     Returns
     -------
@@ -227,7 +231,8 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
     # If combined ensemble, call recursively
     if '+' in ensemble:
         for ens in ensemble.split('+'):
-            temp_df = read_ism_ensemble_data(ensemble=ens, ref_year=ref_year, target_year=target_year)
+            temp_df = read_ism_ensemble_data(ensemble=ens, ref_year=ref_year, target_year=target_year,
+                                             fully_crossed=fully_crossed)
             if ism_df.empty:  # avoid FutureWarning about concatenating an empty DataFrame
                 ism_df = temp_df
             else:
@@ -331,6 +336,16 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
                 ism_df.loc[len(ism_df)] = ais_dict
     # Include GrIS column for convenience, enabling fitting of vine copula below, with GrIS independent of EAIS and WAIS
     ism_df['GrIS'] = 0.
+    # Ensure fully crossed within each separate ensemble
+    if fully_crossed and '+' not in ensemble:
+        n_before = len(ism_df)  # number of rows before filtering
+        n_esm = ism_df['ESM'].nunique()   # number of ESMs in total
+        n_esm_per_ism_ser = ism_df.groupby('ISM')['ESM'].nunique()  # number of ESMs per ISM
+        valid_ism_ind = n_esm_per_ism_ser[n_esm_per_ism_ser == n_esm].index  # ISMs with every ESM
+        ism_df = ism_df[ism_df['ISM'].isin(valid_ism_ind)]
+        n_after = len(ism_df)
+        print(f'{ensemble}: removed {n_before - n_after} rows to ensure fully crossed.')
+        print(f'{ensemble}: now {ism_df["ESM"].nunique()} ESMs x {ism_df["ISM"].nunique()} ISM configurations.')
     # Return result
     return ism_df
 
@@ -571,7 +586,8 @@ def get_ism_corr_df(ensemble='S20+P21+L23', ref_year=2015, target_year=2100):
     The effects of the controlling categorical variable (ESM or ISM) are first removed using linear regression.
     """
     # Get data for combined ISM ensemble
-    ism_df = read_ism_ensemble_data(ensemble=ensemble, ref_year=ref_year, target_year=target_year).dropna()
+    ism_df = read_ism_ensemble_data(ensemble=ensemble, ref_year=ref_year, target_year=target_year,
+                                    fully_crossed=True).dropna()
     # Create DataFrame to store correlation data
     ism_corr_df = pd.DataFrame(columns=["Description", "Control", "Pearson's r", "Kendall's 𝜏"])
     # Loop over rows (control)
