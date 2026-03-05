@@ -317,7 +317,7 @@ def read_ism_ensemble_data(ensemble='S20+P21+L23', ref_year=2015, target_year=21
                 else:
                     print(f'Unknown experiment {exp}')
                     ism_info = None
-                ais_dict = {'Ensemble': ensemble, 'Exp': exp, 'ESM': str(in_fn).split('/')[-2], 'ISM': 'L23'}
+                ais_dict = {'Ensemble': ensemble, 'Exp': exp, 'ESM': str(in_fn).split('/')[-2], 'ISM': ism_info}
                 # Read data
                 try:
                     in_df = pd.read_fwf(in_fn, skiprows=1, index_col='time')
