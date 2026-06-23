@@ -13,14 +13,14 @@ The Zenodo archive of this repository serves as a secondary reference.
 ## Workflow
 
 ### Environment
-To create a _conda_ environment with the necessary software dependencies, use the [**`environment.yml`**](environment.yml) file:
+To create a _mamba_ environment with the necessary software dependencies, use the [**`environment.yml`**](environment.yml) file:
 
 ```
-conda env create --file environment.yml
-conda activate d23b-ice-dependence
+mamba env create -f environment.yml
+mamba activate d23b-ice-dependence
 ```
 
-The analysis has been performed within this environment on _macOS 13_ (arm64).
+The analysis has been performed within this environment on _macOS Tahoe 26.4.1_ (arm64).
 
 ### Input data
 The analysis code requires
